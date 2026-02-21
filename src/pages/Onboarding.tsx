@@ -1032,11 +1032,19 @@ const Onboarding = () => {
                                         />
                                         <button
                                             className={styles.uploadBtn}
-                                            style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', fontSize: '0.8rem' }}
+                                            style={{
+                                                padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', fontSize: '0.8rem',
+                                                ...(fellowshipFiles.length > 0 ? {
+                                                    background: '#D1FAE5', color: '#065F46', borderColor: '#86EFAC',
+                                                } : {})
+                                            }}
                                             onClick={() => fellowshipFileRef.current?.click()}
                                             type="button"
                                         >
-                                            <Upload size={14} /> Attach
+                                            {fellowshipFiles.length > 0
+                                                ? <>✓ {fellowshipFiles.length} file{fellowshipFiles.length > 1 ? 's' : ''}</>
+                                                : <><Upload size={14} /> Attach</>
+                                            }
                                         </button>
                                     </div>
                                     {fellowshipFiles.length > 0 && (

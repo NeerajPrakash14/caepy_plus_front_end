@@ -1,33 +1,84 @@
-import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, X, ShieldCheck, User, MapPin, Briefcase, Mail, Phone, Calendar, FileText, Globe, IndianRupee, GraduationCap, Clock, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import {
+    ArrowLeft, X, ShieldCheck, User, MapPin, Briefcase, Mail, Phone,
+    Calendar, FileText, IndianRupee, GraduationCap, Clock,
+    AlertTriangle, Stethoscope, Heart, MessageSquare, Image, Loader2
+} from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 
-import { adminService, type Doctor } from '../../services/adminService';
+import { adminService, type Doctor, type DoctorFullProfile, type DoctorDetails } from '../../services/adminService';
 
 const AdminDoctorDetails = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const doctor = location.state?.doctor as Doctor;
+    const { id: routeId } = useParams<{ id: string }>();
 
-    const [status, setStatus] = useState(doctor?.onboarding_status || 'pending');
+    // Navigation-state doctor (from the list page) — used for initial render
+    const navDoctor = location.state?.doctor as Doctor | undefined;
+
+    const [profile, setProfile] = useState<DoctorFullProfile | null>(null);
+    const [doctor, setDoctor] = useState<Doctor | null>(navDoctor || null);
+    const [status, setStatus] = useState(navDoctor?.onboarding_status || 'pending');
     const [isLoading, setIsLoading] = useState(false);
+    const [fetchError, setFetchError] = useState<string | null>(null);
+    const [isFetching, setIsFetching] = useState(true);
 
-    if (!doctor) {
+    // Fetch full profile from backend
+    useEffect(() => {
+        const id = routeId ? parseInt(routeId) : doctor?.id;
+        if (!id) { setIsFetching(false); return; }
+
+        (async () => {
+            try {
+                const data = await adminService.getDoctorFullProfile(id);
+                setProfile(data);
+                setStatus(data.identity.onboarding_status);
+            } catch (err) {
+                console.warn('Failed to fetch full profile, falling back to navigation state', err);
+                setFetchError('Could not load full profile from server. Showing limited data.');
+            } finally {
+                setIsFetching(false);
+            }
+        })();
+    }, [routeId, doctor?.id]);
+
+    if (isFetching) {
+        return (
+            <div className={styles.container} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+                <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
+                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+            </div>
+        );
+    }
+
+    if (!doctor && !profile) {
         return <div className={styles.container}>Doctor not found. <button onClick={() => navigate('/admin/dashboard')}>Go Back</button></div>;
     }
 
-    const doctorName = doctor.full_name || `${doctor.first_name} ${doctor.last_name}`;
-    const locationStr = doctor.primary_practice_location || 'Location not set';
-    const specialtyStr = doctor.specialty || 'Specialty not set';
-    const joinedDate = new Date(doctor.created_at).toLocaleDateString();
-    const regNumber = doctor.medical_registration_number || null;
+    // Build display data — prefer profile (API) over navigation-state doctor
+    const identity = profile?.identity;
+    const details = profile?.details;
+    const media = profile?.media || [];
+
+    const doctorName = identity
+        ? `${identity.first_name} ${identity.last_name}`.trim() || 'Unnamed'
+        : doctor?.full_name || `${doctor?.first_name} ${doctor?.last_name}`;
+
+    const email = identity?.email || doctor?.email || '';
+    const phone = identity?.phone_number || doctor?.phone || '';
+    const specialty = details?.specialty || doctor?.specialty || 'Specialty not set';
+    const locationStr = details?.primary_practice_location || doctor?.primary_practice_location || 'Location not set';
+    const joinedDate = identity?.registered_at || doctor?.created_at;
+    const regNumber = details?.registration_number || doctor?.medical_registration_number || null;
 
     const handleVerify = async () => {
+        const id = identity?.doctor_id || doctor?.id;
+        if (!id) return;
         if (window.confirm("Are you sure you want to verify this doctor?")) {
             setIsLoading(true);
             try {
-                await adminService.verifyDoctor(doctor.id);
+                await adminService.verifyDoctor(id);
                 setStatus('verified');
                 alert("Doctor verified successfully");
             } catch (error) {
@@ -40,11 +91,13 @@ const AdminDoctorDetails = () => {
     };
 
     const handleReject = async () => {
+        const id = identity?.doctor_id || doctor?.id;
+        if (!id) return;
         const reason = window.prompt("Please provide a reason for rejection:");
         if (reason !== null) {
             setIsLoading(true);
             try {
-                await adminService.rejectDoctor(doctor.id, reason);
+                await adminService.rejectDoctor(id, reason);
                 setStatus('rejected');
                 alert("Doctor rejected successfully");
             } catch (error) {
@@ -68,11 +121,17 @@ const AdminDoctorDetails = () => {
                 <ArrowLeft size={18} /> Back to Doctors List
             </button>
 
+            {fetchError && (
+                <div style={{ background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#92400E' }}>
+                    ⚠️ {fetchError}
+                </div>
+            )}
+
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
                 <div>
                     <h1 className={styles.title}>{doctorName}</h1>
-                    <p className={styles.subtitle}>{specialtyStr} • {locationStr}</p>
+                    <p className={styles.subtitle}>{specialty} • {locationStr}</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <span className={`${styles.statusBadge} ${isVerified ? styles.statusVerified : isRejected ? styles.statusRejected : styles.statusPending}`} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
@@ -81,16 +140,12 @@ const AdminDoctorDetails = () => {
                 </div>
             </div>
 
-            {/* Registration Number - Highlighted Card (Primary for verification) */}
+            {/* Registration Number - Highlighted Card */}
             <div style={{
                 background: regNumber ? 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)' : '#FEF3C7',
                 border: regNumber ? '2px solid #818CF8' : '2px solid #F59E0B',
-                borderRadius: '1rem',
-                padding: '1.5rem 2rem',
-                marginBottom: '2rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                borderRadius: '1rem', padding: '1.5rem 2rem', marginBottom: '2rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{
@@ -98,10 +153,7 @@ const AdminDoctorDetails = () => {
                         background: regNumber ? '#4F46E5' : '#F59E0B',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                        {regNumber
-                            ? <FileText size={24} color="white" />
-                            : <AlertTriangle size={24} color="white" />
-                        }
+                        {regNumber ? <FileText size={24} color="white" /> : <AlertTriangle size={24} color="white" />}
                     </div>
                     <div>
                         <p style={{ fontSize: '0.8125rem', color: regNumber ? '#4338CA' : '#92400E', fontWeight: 500, margin: '0 0 0.25rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -114,20 +166,13 @@ const AdminDoctorDetails = () => {
                 </div>
                 {regNumber && (
                     <a
-                        href={`https://www.nmc.org.in/information-desk/indian-medical-register/`}
+                        href="https://www.nmc.org.in/information-desk/indian-medical-register/"
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                            padding: '0.625rem 1.25rem',
-                            background: '#4F46E5',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '0.5rem',
-                            fontWeight: 500,
-                            fontSize: '0.875rem',
-                            cursor: 'pointer',
-                            textDecoration: 'none',
-                            whiteSpace: 'nowrap',
+                            padding: '0.625rem 1.25rem', background: '#4F46E5', color: 'white',
+                            border: 'none', borderRadius: '0.5rem', fontWeight: 500,
+                            fontSize: '0.875rem', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap',
                         }}
                     >
                         Verify on NMC ↗
@@ -138,42 +183,110 @@ const AdminDoctorDetails = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
                 {/* Main Profile Info */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
                     {/* Basic Information */}
-                    <div style={{ background: 'white', padding: '2rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.5rem', borderBottom: '1px solid #F3F4F6', paddingBottom: '1rem' }}>
-                            Basic Information
-                        </h3>
+                    <SectionCard title="Basic Information">
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                             <DetailRow icon={<User size={18} />} label="Full Name" value={doctorName} />
-                            <DetailRow icon={<Briefcase size={18} />} label="Specialty" value={specialtyStr} />
-                            <DetailRow icon={<Mail size={18} />} label="Email" value={doctor.email} />
-                            <DetailRow icon={<Phone size={18} />} label="Phone" value={doctor.phone || 'N/A'} />
+                            <DetailRow icon={<Briefcase size={18} />} label="Specialty" value={specialty} />
+                            <DetailRow icon={<Mail size={18} />} label="Email" value={email || 'N/A'} />
+                            <DetailRow icon={<Phone size={18} />} label="Phone" value={phone || 'N/A'} />
                             <DetailRow icon={<MapPin size={18} />} label="Practice Location" value={locationStr} />
-                            <DetailRow icon={<Calendar size={18} />} label="Joined Date" value={joinedDate} />
-                        </div>
-                    </div>
-
-                    {/* Professional Details */}
-                    <div style={{ background: 'white', padding: '2rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.5rem', borderBottom: '1px solid #F3F4F6', paddingBottom: '1rem' }}>
-                            Professional Details
-                        </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                            <DetailRow icon={<GraduationCap size={18} />} label="Qualifications" value={doctor.qualifications || 'Not provided'} />
-                            <DetailRow icon={<Clock size={18} />} label="Experience" value={doctor.experience_years ? `${doctor.experience_years} years` : 'Not provided'} />
-                            <DetailRow icon={<IndianRupee size={18} />} label="Consultation Fee" value={doctor.consultation_fee || 'Not provided'} />
-                            <DetailRow icon={<Globe size={18} />} label="Languages" value={doctor.languages || 'Not provided'} />
+                            <DetailRow icon={<Calendar size={18} />} label="Joined Date" value={joinedDate ? new Date(joinedDate).toLocaleDateString() : 'N/A'} />
                         </div>
 
-                        {doctor.bio && (
-                            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #F3F4F6' }}>
-                                <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0 0 0.5rem 0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>About</p>
-                                <p style={{ color: '#374151', lineHeight: '1.7', fontSize: '0.9375rem', margin: 0 }}>
-                                    {doctor.bio}
-                                </p>
+                        {/* Centres of Practice */}
+                        <TagList label="Centres of Practice" items={details?.centres_of_practice} fallback={doctor?.centres_of_practice} />
+                    </SectionCard>
+
+                    {/* Credentials & Trust Markers (Block 2) */}
+                    {details && (
+                        <SectionCard title="Credentials & Trust Markers" icon={<GraduationCap size={18} />}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <DetailRow icon={<Calendar size={18} />} label="Year of MBBS" value={details.year_of_mbbs?.toString() || 'N/A'} />
+                                <DetailRow icon={<Calendar size={18} />} label="Year of Specialisation" value={details.year_of_specialisation?.toString() || 'N/A'} />
+                                <DetailRow icon={<Clock size={18} />} label="Years of Clinical Experience" value={details.years_of_clinical_experience?.toString() || doctor?.years_of_experience?.toString() || 'N/A'} />
+                                <DetailRow icon={<Clock size={18} />} label="Years Post Specialisation" value={details.years_post_specialisation?.toString() || 'N/A'} />
                             </div>
-                        )}
-                    </div>
+                            <TagList label="Qualifications" items={details.qualifications} fallback={doctor?.qualifications} />
+                            <TagList label="Fellowships" items={details.fellowships} fallback={doctor?.fellowships} />
+                            <TagList label="Professional Memberships" items={details.professional_memberships} fallback={doctor?.professional_memberships} />
+                            <TagList label="Awards & Honours" items={details.awards_academic_honours} fallback={doctor?.awards_academic_honours} />
+                        </SectionCard>
+                    )}
+
+                    {/* Clinical Focus & Expertise (Block 3) */}
+                    {details && (
+                        <SectionCard title="Clinical Focus & Expertise" icon={<Stethoscope size={18} />}>
+                            {details.practice_segments && (
+                                <DetailRow icon={<Briefcase size={18} />} label="Practice Segments" value={details.practice_segments} />
+                            )}
+                            <TagList label="Areas of Clinical Interest" items={details.areas_of_clinical_interest} fallback={doctor?.areas_of_clinical_interest} />
+                            <TagList label="Conditions Commonly Treated" items={details.conditions_commonly_treated} />
+                            <TagList label="Known For Treating" items={details.conditions_known_for} />
+                            <TagList label="Wants to Treat More" items={details.conditions_want_to_treat_more} />
+                        </SectionCard>
+                    )}
+
+                    {/* The Human Side (Block 4) */}
+                    {details && (hasHumanSide(details)) && (
+                        <SectionCard title="The Human Side" icon={<Heart size={18} />}>
+                            <TagList label="Training Experience" items={details.training_experience} />
+                            <TagList label="Motivation in Practice" items={details.motivation_in_practice} />
+                            <TagList label="Unwinding After Work" items={details.unwinding_after_work} />
+                            <TagList label="Recognition & Identity" items={details.recognition_identity} />
+                            <TagList label="Quality Time Interests" items={details.quality_time_interests} />
+                            {details.quality_time_interests_text && <TextBlock label="Quality Time Details" value={details.quality_time_interests_text} />}
+                            {details.professional_achievement && <TextBlock label="Professional Achievement" value={details.professional_achievement} />}
+                            {details.personal_achievement && <TextBlock label="Personal Achievement" value={details.personal_achievement} />}
+                            {details.professional_aspiration && <TextBlock label="Professional Aspiration" value={details.professional_aspiration} />}
+                            {details.personal_aspiration && <TextBlock label="Personal Aspiration" value={details.personal_aspiration} />}
+                        </SectionCard>
+                    )}
+
+                    {/* Patient Value & Choice Factors (Block 5) */}
+                    {details && (details.what_patients_value_most || details.approach_to_care || details.availability_philosophy) && (
+                        <SectionCard title="Patient Value & Choice Factors" icon={<MessageSquare size={18} />}>
+                            {details.what_patients_value_most && <TextBlock label="What Patients Value Most" value={details.what_patients_value_most} />}
+                            {details.approach_to_care && <TextBlock label="Approach to Care" value={details.approach_to_care} />}
+                            {details.availability_philosophy && <TextBlock label="Availability Philosophy" value={details.availability_philosophy} />}
+                        </SectionCard>
+                    )}
+
+                    {/* Generated Content */}
+                    {details && (details.professional_overview || details.about_me || details.professional_tagline || details.profile_summary) && (
+                        <SectionCard title="Generated Profile Content" icon={<FileText size={18} />}>
+                            {details.professional_tagline && <TextBlock label="Professional Tagline" value={details.professional_tagline} />}
+                            {details.professional_overview && <TextBlock label="Professional Overview" value={details.professional_overview} />}
+                            {details.about_me && <TextBlock label="About Me" value={details.about_me} />}
+                            {details.profile_summary && <TextBlock label="Profile Summary" value={details.profile_summary} />}
+                        </SectionCard>
+                    )}
+
+                    {/* Media / Documents */}
+                    {media.length > 0 && (
+                        <SectionCard title="Media & Documents" icon={<Image size={18} />}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                                {media.map(m => (
+                                    <div key={m.media_id} style={{ background: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
+                                        <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827', margin: '0 0 0.25rem 0', wordBreak: 'break-all' }}>{m.file_name}</p>
+                                        <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0 0 0.5rem 0' }}>
+                                            {m.media_category} • {m.media_type}
+                                            {m.file_size ? ` • ${(m.file_size / 1024).toFixed(0)} KB` : ''}
+                                        </p>
+                                        <a
+                                            href={m.file_uri}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ fontSize: '0.8125rem', color: '#4F46E5', textDecoration: 'none', fontWeight: 500 }}
+                                        >
+                                            View File ↗
+                                        </a>
+                                    </div>
+                                ))}
+                            </div>
+                        </SectionCard>
+                    )}
                 </div>
 
                 {/* Right Column: Actions + Quick Info */}
@@ -181,7 +294,6 @@ const AdminDoctorDetails = () => {
                     {/* Verification Actions */}
                     <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Verification Actions</h3>
-
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <button
                                 onClick={handleVerify}
@@ -197,7 +309,6 @@ const AdminDoctorDetails = () => {
                             >
                                 <ShieldCheck size={18} /> {isVerified ? 'Verified' : 'Verify Profile'}
                             </button>
-
                             {!isRejected && !isVerified && (
                                 <button
                                     onClick={handleReject}
@@ -220,18 +331,67 @@ const AdminDoctorDetails = () => {
                         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Registration Summary</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             <SummaryItem label="Registration No." value={regNumber || 'N/A'} highlight={!!regNumber} />
-                            <SummaryItem label="Specialty" value={specialtyStr} />
-                            <SummaryItem label="Experience" value={doctor.experience_years ? `${doctor.experience_years} yrs` : 'N/A'} />
-                            <SummaryItem label="Status" value={status} badge={true} isVerified={isVerified} isRejected={isRejected} />
+                            <SummaryItem label="Specialty" value={specialty} />
+                            <SummaryItem label="Experience" value={
+                                details?.years_of_clinical_experience ? `${details.years_of_clinical_experience} yrs` :
+                                    doctor?.years_of_experience ? `${doctor.years_of_experience} yrs` : 'N/A'
+                            } />
+                            <SummaryItem label="Status" value={status} badge isVerified={isVerified} isRejected={isRejected} />
                         </div>
                     </div>
+
+                    {/* Languages & Communication */}
+                    {((details?.languages_spoken && details.languages_spoken.length > 0) || (doctor?.languages && doctor.languages.length > 0)) && (
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Languages</h3>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                {(details?.languages_spoken || doctor?.languages || []).map((lang, i) => (
+                                    <span key={i} style={{
+                                        background: '#EFF6FF', color: '#1D4ED8', padding: '0.25rem 0.75rem',
+                                        borderRadius: '999px', fontSize: '0.8125rem', fontWeight: 500,
+                                    }}>
+                                        {lang}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Consultation Fee */}
+                    {(details?.consultation_fee || doctor?.consultation_fee) && (
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Consultation Fee</h3>
+                            <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10B981', margin: 0 }}>
+                                <IndianRupee size={20} style={{ verticalAlign: 'middle' }} />
+                                {details?.consultation_fee || doctor?.consultation_fee}
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
     );
 };
 
-const DetailRow = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
+// ---------------------------------------------------------------------------
+// Helper Components
+// ---------------------------------------------------------------------------
+
+const SectionCard = ({ title, icon, children }: { title: string; icon?: any; children: React.ReactNode }) => (
+    <div style={{ background: 'white', padding: '2rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <h3 style={{
+            fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.5rem',
+            borderBottom: '1px solid #F3F4F6', paddingBottom: '1rem',
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+        }}>
+            {icon && <span style={{ color: '#6B7280' }}>{icon}</span>}
+            {title}
+        </h3>
+        {children}
+    </div>
+);
+
+const DetailRow = ({ icon, label, value }: { icon: any; label: string; value: string }) => (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
         <div style={{ color: '#9CA3AF', marginTop: '2px' }}>{icon}</div>
         <div>
@@ -241,22 +401,41 @@ const DetailRow = ({ icon, label, value }: { icon: any, label: string, value: st
     </div>
 );
 
+const TagList = ({ label, items, fallback }: { label: string; items?: string[] | null; fallback?: string[] | null }) => {
+    const list = items?.length ? items : (fallback?.length ? fallback : null);
+    if (!list) return null;
+    return (
+        <div style={{ marginTop: '1.25rem' }}>
+            <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0 0 0.5rem 0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {list.map((item, i) => (
+                    <span key={i} style={{
+                        background: '#F3F4F6', color: '#374151', padding: '0.3rem 0.75rem',
+                        borderRadius: '6px', fontSize: '0.8125rem', fontWeight: 500,
+                    }}>
+                        {item}
+                    </span>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const TextBlock = ({ label, value }: { label: string; value: string }) => (
+    <div style={{ marginTop: '1.25rem' }}>
+        <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0 0 0.5rem 0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
+        <p style={{ color: '#374151', lineHeight: '1.7', fontSize: '0.9375rem', margin: 0 }}>{value}</p>
+    </div>
+);
+
 const SummaryItem = ({ label, value, highlight, badge, isVerified, isRejected }: {
-    label: string;
-    value: string;
-    highlight?: boolean;
-    badge?: boolean;
-    isVerified?: boolean;
-    isRejected?: boolean;
+    label: string; value: string; highlight?: boolean; badge?: boolean; isVerified?: boolean; isRejected?: boolean;
 }) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid #F9FAFB' }}>
         <span style={{ fontSize: '0.8125rem', color: '#6B7280' }}>{label}</span>
         {badge ? (
             <span style={{
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                padding: '0.25rem 0.625rem',
-                borderRadius: '999px',
+                fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.625rem', borderRadius: '999px',
                 background: isVerified ? '#D1FAE5' : isRejected ? '#FEE2E2' : '#FEF3C7',
                 color: isVerified ? '#065F46' : isRejected ? '#991B1B' : '#92400E',
                 textTransform: 'capitalize',
@@ -265,8 +444,7 @@ const SummaryItem = ({ label, value, highlight, badge, isVerified, isRejected }:
             </span>
         ) : (
             <span style={{
-                fontSize: '0.875rem',
-                fontWeight: highlight ? 700 : 500,
+                fontSize: '0.875rem', fontWeight: highlight ? 700 : 500,
                 color: highlight ? '#4F46E5' : '#111827',
                 fontFamily: highlight ? 'monospace' : 'inherit',
             }}>
@@ -275,5 +453,21 @@ const SummaryItem = ({ label, value, highlight, badge, isVerified, isRejected }:
         )}
     </div>
 );
+
+/** Check if any human-side block 4 fields are filled. */
+function hasHumanSide(d: DoctorDetails): boolean {
+    return !!(
+        d.training_experience?.length ||
+        d.motivation_in_practice?.length ||
+        d.unwinding_after_work?.length ||
+        d.recognition_identity?.length ||
+        d.quality_time_interests?.length ||
+        d.quality_time_interests_text ||
+        d.professional_achievement ||
+        d.personal_achievement ||
+        d.professional_aspiration ||
+        d.personal_aspiration
+    );
+}
 
 export default AdminDoctorDetails;

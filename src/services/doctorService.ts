@@ -387,6 +387,7 @@ export const doctorService = {
             gender: toStringOrNull(formData.gender),
             years_of_experience: toNumberOrNull(formData.experience),
             consultation_fee: toNumberOrNull(formData.consultationFee),
+            medical_registration_number: toStringOrNull(formData.registrationNumber),
             registration_number: toStringOrNull(formData.registrationNumber),
             registration_year: toNumberOrNull(formData.registrationYear),
             registration_authority: toStringOrNull(formData.registrationAuthority),

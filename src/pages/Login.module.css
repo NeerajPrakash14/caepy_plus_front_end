@@ -189,9 +189,8 @@
 
 .logoWrapper {
     width: 100%;
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-    /* Reduced space below logo */
+    max-width: 480px;
+    margin: 2rem auto 2rem auto;
 }
 
 .formContainer {
