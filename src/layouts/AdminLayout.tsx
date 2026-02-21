@@ -7,7 +7,7 @@ const AdminLayout: React.FC = () => {
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Header centerTitle="Admin Console" />
-            <div style={{ display: 'flex', flex: 1 }}>
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                 <AdminSidebar />
                 <main style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB' }}>
                     <Outlet />

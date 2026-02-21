@@ -8,7 +8,7 @@ const MainLayout: React.FC = () => {
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Header />
-            <div style={{ display: 'flex', flex: 1 }}>
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                 <Sidebar />
                 <main style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB' }}>
                     <Outlet />
