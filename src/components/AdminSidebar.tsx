@@ -7,10 +7,12 @@ import {
 } from 'lucide-react';
 import styles from './Sidebar.module.css'; // Reusing existing sidebar styles
 import { getLoggedInAdmin, type AdminUser } from '../lib/adminAuth';
+import { adminService } from '../services/adminService';
 
 const AdminSidebar: React.FC = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [user, setUser] = useState<AdminUser | null>(null);
+    const [pendingCount, setPendingCount] = useState(0);
 
     useEffect(() => {
         // Prefer localStorage role if available (from real API login)
@@ -29,6 +31,11 @@ const AdminSidebar: React.FC = () => {
         } else {
             setUser(mockUser);
         }
+
+        // Fetch pending dropdown count for badge
+        adminService.getDropdownOptions({ status: 'pending', limit: 1 })
+            .then(res => setPendingCount(res.pending_count ?? 0))
+            .catch(() => { });
     }, []);
 
     const toggleSidebar = () => {
@@ -81,6 +88,7 @@ const AdminSidebar: React.FC = () => {
                     icon={<Database size={20} />}
                     label="Master Data"
                     isCollapsed={isCollapsed}
+                    badge={pendingCount > 0 ? pendingCount : undefined}
                 />
             </nav>
         </aside>
@@ -92,9 +100,10 @@ interface NavItemProps {
     icon: React.ReactNode;
     label: string;
     isCollapsed: boolean;
+    badge?: number;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed }) => {
+const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed, badge }) => {
     return (
         <NavLink
             to={to}
@@ -104,9 +113,21 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed }) => {
             title={isCollapsed ? label : undefined}
         >
             <span className={styles.icon}>{icon}</span>
-            <span className={styles.label}>{label}</span>
+            <span className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                {label}
+                {badge !== undefined && !isCollapsed && (
+                    <span style={{
+                        background: '#EF4444', color: 'white', fontSize: '0.6875rem', fontWeight: 700,
+                        borderRadius: '99px', padding: '0.0625rem 0.375rem', minWidth: '1.125rem',
+                        textAlign: 'center', lineHeight: '1.25',
+                    }}>
+                        {badge}
+                    </span>
+                )}
+            </span>
         </NavLink>
     );
 };
 
 export default AdminSidebar;
+

@@ -8,8 +8,10 @@ interface WelcomeDialogProps {
     userName?: string;
     currentStep?: number;
     totalSteps?: number;
+    showSkipButton?: boolean;
     onStartTour: () => void;
     onSkip: () => void;
+    onSkipToReview?: () => void;
 }
 
 const SECTION_NAMES: Record<number, string> = {
@@ -27,8 +29,10 @@ const WelcomeDialog = ({
     userName,
     currentStep = 1,
     totalSteps = 6,
+    showSkipButton = false,
     onStartTour,
     onSkip,
+    onSkipToReview,
 }: WelcomeDialogProps) => {
     const completionPercent = Math.round(((currentStep - 1) / totalSteps) * 100);
     const displayName = userName || 'Doctor';
@@ -181,7 +185,13 @@ const WelcomeDialog = ({
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.65 }}
+                                    style={{ justifyContent: showSkipButton ? 'space-between' : 'center' }}
                                 >
+                                    {showSkipButton && onSkipToReview && (
+                                        <button className={styles.secondaryButton} onClick={onSkipToReview}>
+                                            Skip to Review
+                                        </button>
+                                    )}
                                     <button className={styles.primaryButton} onClick={onSkip} style={{ flex: 'unset' }}>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
                                             Continue <ArrowRight size={16} />

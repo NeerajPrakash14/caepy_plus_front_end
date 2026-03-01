@@ -1,4 +1,4 @@
-import api from '../lib/api';
+import api, { parseResponse, parseResponseField } from '../lib/api';
 
 export interface AdminUserResponse {
     id: number;
@@ -309,7 +309,90 @@ const STATIC_USERS: AdminUserResponse[] = [
     }
 ];
 
-const STATIC_DOCTORS: Doctor[] = [
+// ---------------------------------------------------------------------------
+// Bulk Upload API Response Types
+// ---------------------------------------------------------------------------
+
+export interface CsvRowError {
+    row: number;
+    field: string;
+    message: string;
+}
+
+export interface CsvValidationResponse {
+    valid: boolean;
+    total_rows: number;
+    errors: CsvRowError[];
+}
+
+export interface CsvUploadResponse {
+    created: number;
+    updated: number;
+    skipped: number;
+    errors: CsvRowError[];
+}
+
+// ---------------------------------------------------------------------------
+// Admin Dropdown Management Types
+// ---------------------------------------------------------------------------
+
+export type DropdownOptionStatus = 'approved' | 'pending' | 'rejected';
+
+export interface DropdownOption {
+    id: number;
+    field_name: string;
+    value: string;
+    label: string | null;
+    display_order: number | null;
+    status: DropdownOptionStatus;
+    is_system: boolean;
+    submitted_by: string | null;
+    reviewed_by: string | null;
+    review_notes: string | null;
+    created_at: string;
+    updated_at: string | null;
+}
+
+export interface DropdownListResponse {
+    options: DropdownOption[];
+    total: number;
+    pending_count: number;
+}
+
+export interface DropdownField {
+    field_name: string;
+    description: string;
+}
+
+export interface DropdownCreateRequest {
+    field_name: string;
+    value: string;
+    label?: string | null;
+    display_order?: number | null;
+}
+
+export interface DropdownUpdateRequest {
+    label?: string | null;
+    display_order?: number | null;
+}
+
+export interface DropdownReviewRequest {
+    review_notes?: string | null;
+}
+
+export interface DropdownBulkReviewRequest {
+    option_ids: number[];
+    review_notes?: string | null;
+}
+
+export interface DropdownBulkReviewResponse {
+    processed: number;
+    failed: number;
+    errors: string[];
+}
+
+
+let STATIC_DOCTORS: Doctor[] = [
     {
         id: 8881,
         first_name: 'Prem',
@@ -469,5 +552,116 @@ export const adminService = {
     rejectDoctor: async (doctorId: number, reason?: string) => {
         const response = await api.post(`/onboarding/reject/${doctorId}`, { reason });
         return response.data;
+    },
+
+    /** Download the official bulk upload CSV template from the backend. */
+    downloadBulkTemplate: async (): Promise<void> => {
+        const response = await api.get('/doctors/bulk-upload/csv/template', {
+            responseType: 'blob',
+        });
+        const blob = new Blob([response.data], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'doctor_bulk_upload_template.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    },
+
+    /** Validate a CSV file (dry-run — no DB writes). */
+    validateBulkCsv: async (file: File): Promise<CsvValidationResponse> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post<CsvValidationResponse>(
+            '/doctors/bulk-upload/csv/validate',
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        return response.data;
+    },
+
+    /** Confirm a previously validated CSV upload — writes records to the database. */
+    confirmBulkUpload: async (file: File): Promise<CsvUploadResponse> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post<CsvUploadResponse>(
+            '/doctors/bulk-upload/csv',
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        return response.data;
+    },
+
+    // -----------------------------------------------------------------------
+    // Admin Dropdown Management
+    // -----------------------------------------------------------------------
+
+    /** Fetch all supported dropdown field names. */
+    getDropdownFields: async (): Promise<DropdownField[]> => {
+        const response = await api.get('/admin/dropdowns/fields');
+        return parseResponseField<DropdownField[]>(response, 'fields');
+    },
+
+    /** List all dropdown options with optional filters. */
+    getDropdownOptions: async (params?: {
+        field_name?: string;
+        status?: DropdownOptionStatus;
+        search?: string;
+        skip?: number;
+        limit?: number;
+    }): Promise<DropdownListResponse> => {
+        const response = await api.get('/admin/dropdowns', { params });
+        return parseResponse<DropdownListResponse>(response);
+    },
+
+    /** List pending dropdown options. */
+    getPendingOptions: async (params?: {
+        field_name?: string;
+        skip?: number;
+        limit?: number;
+    }): Promise<DropdownListResponse> => {
+        const response = await api.get('/admin/dropdowns/pending', { params });
+        return parseResponse<DropdownListResponse>(response);
+    },
+
+    /** Create a new dropdown option (auto-approved). */
+    createDropdownOption: async (payload: DropdownCreateRequest): Promise<DropdownOption> => {
+        const response = await api.post('/admin/dropdowns', payload);
+        return parseResponse<DropdownOption>(response);
+    },
+
+    /** Update label / display_order of an option. */
+    updateDropdownOption: async (optionId: number, payload: DropdownUpdateRequest): Promise<DropdownOption> => {
+        const response = await api.patch(`/admin/dropdowns/${optionId}`, payload);
+        return parseResponse<DropdownOption>(response);
+    },
+
+    /** Delete a dropdown option (system rows are protected). */
+    deleteDropdownOption: async (optionId: number): Promise<void> => {
+        await api.delete(`/admin/dropdowns/${optionId}`);
+    },
+
+    /** Approve a pending dropdown option. */
+    approveOption: async (optionId: number, payload?: DropdownReviewRequest): Promise<DropdownOption> => {
+        const response = await api.post(`/admin/dropdowns/${optionId}/approve`, payload ?? {});
+        return parseResponse<DropdownOption>(response);
+    },
+
+    /** Reject a pending dropdown option. */
+    rejectOption: async (optionId: number, payload?: DropdownReviewRequest): Promise<DropdownOption> => {
+        const response = await api.post(`/admin/dropdowns/${optionId}/reject`, payload ?? {});
+        return parseResponse<DropdownOption>(response);
+    },
+
+    /** Bulk approve multiple pending options. */
+    bulkApprove: async (payload: DropdownBulkReviewRequest): Promise<DropdownBulkReviewResponse> => {
+        const response = await api.post('/admin/dropdowns/bulk-approve', payload);
+        return parseResponse<DropdownBulkReviewResponse>(response);
+    },
+
+    /** Bulk reject multiple pending options. */
+    bulkReject: async (payload: DropdownBulkReviewRequest): Promise<DropdownBulkReviewResponse> => {
+        const response = await api.post('/admin/dropdowns/bulk-reject', payload);
+        return parseResponse<DropdownBulkReviewResponse>(response);
     }
 };

@@ -54,7 +54,13 @@ const Login = () => {
             navigate('/profile'); // Redirect to profile view
         } else {
             // In-progress - determine where to send
-            if (profile.currentStep === 0) {
+            const totalSteps = 7;
+            const completionPercent = ((profile.currentStep) / totalSteps) * 100;
+
+            if (completionPercent > 75) {
+                // High completion – go straight to dashboard
+                navigate('/dashboard', { state: { isNewUser } });
+            } else if (isNewUser && profile.currentStep === 0) {
                 navigate('/resume-upload', { state: { isNewUser } });
             } else {
                 navigate('/onboarding', { state: { isNewUser } });

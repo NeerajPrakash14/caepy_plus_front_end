@@ -5,11 +5,14 @@ import Stepper from '../components/ui/Stepper';
 import LivePreview from '../components/ui/LivePreview';
 import WelcomeDialog from '../components/ui/WelcomeDialog';
 import GuidedTour from '../components/ui/GuidedTour';
+import CreatableDropdown from '../components/ui/CreatableDropdown';
+import type { DropdownOption } from '../components/ui/CreatableDropdown';
 import styles from './Onboarding.module.css';
 import { getMasterData, type MasterData } from '../lib/masterData';
 
 import { mockDataService } from '../services/mockDataService';
 import { doctorService } from '../services/doctorService';
+import { dropdownService } from '../services/dropdownService';
 import { useAssistant } from '../hooks/useAssistant';
 
 import { validateSection1 } from '../lib/validation';
@@ -28,6 +31,10 @@ interface PracticeLocation {
     name: string;
     address: string;
     schedule: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    phone_number?: string;
     lat?: number;
     lng?: number;
 }
@@ -42,8 +49,9 @@ const PracticeLocationAccordion: React.FC<PracticeLocationAccordionProps> = ({ l
     const [isOpen, setIsOpen] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [addMode, setAddMode] = useState<'manual' | 'map'>('manual');
-    const [newLoc, setNewLoc] = useState<PracticeLocation>({ name: '', address: '', schedule: '' });
+    const [newLoc, setNewLoc] = useState<PracticeLocation>({ name: '', address: '', schedule: '', city: '', state: '', pincode: '', phone_number: '' });
     const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+    const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
     const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 12.9716, lng: 77.5946 }); // Default: Bangalore
     const [markerPos, setMarkerPos] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -53,7 +61,15 @@ const PracticeLocationAccordion: React.FC<PracticeLocationAccordionProps> = ({ l
     });
 
     const onAutocompleteLoad = (ac: google.maps.places.Autocomplete) => {
+        ac.setFields(['name', 'formatted_address', 'geometry', 'address_components', 'formatted_phone_number', 'international_phone_number']);
         setAutocomplete(ac);
+    };
+
+    /** Extract a component value from Google Places address_components. */
+    const getAddressComponent = (components: google.maps.GeocoderAddressComponent[] | undefined, type: string): string => {
+        if (!components) return '';
+        const comp = components.find(c => c.types.includes(type));
+        return comp?.long_name || '';
     };
 
     const onPlaceChanged = () => {
@@ -63,13 +79,26 @@ const PracticeLocationAccordion: React.FC<PracticeLocationAccordionProps> = ({ l
             const placeAddress = place.formatted_address || '';
             const lat = place.geometry?.location?.lat();
             const lng = place.geometry?.location?.lng();
+            const comps = place.address_components;
+
+            // Extract city, state, pincode from address_components
+            const city = getAddressComponent(comps, 'locality')
+                || getAddressComponent(comps, 'sublocality_level_1')
+                || getAddressComponent(comps, 'administrative_area_level_2');
+            const state = getAddressComponent(comps, 'administrative_area_level_1');
+            const pincode = getAddressComponent(comps, 'postal_code');
+            const phoneNumber = place.formatted_phone_number || place.international_phone_number || '';
 
             setNewLoc(prev => ({
                 ...prev,
                 name: placeName || prev.name,
                 address: placeAddress,
-                lat: lat,
-                lng: lng,
+                city,
+                state,
+                pincode,
+                phone_number: phoneNumber || prev.phone_number,
+                lat,
+                lng,
             }));
 
             if (lat && lng) {
@@ -79,10 +108,90 @@ const PracticeLocationAccordion: React.FC<PracticeLocationAccordionProps> = ({ l
         }
     };
 
+    /** Handle direct clicks on POIs (Points of Interest) on the map */
+    const onMapClick = (e: google.maps.MapMouseEvent) => {
+        // Check for POI click (has placeId)
+        const mapsMouseEvent = e as google.maps.IconMouseEvent;
+        if (mapsMouseEvent.placeId && mapRef) {
+            // Prevent default info window
+            e.stop?.();
+
+            const service = new google.maps.places.PlacesService(mapRef);
+            service.getDetails(
+                {
+                    placeId: mapsMouseEvent.placeId,
+                    fields: ['name', 'formatted_address', 'geometry', 'address_components', 'formatted_phone_number', 'international_phone_number'],
+                },
+                (place, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+                        const placeName = place.name || '';
+                        const placeAddress = place.formatted_address || '';
+                        const lat = place.geometry?.location?.lat();
+                        const lng = place.geometry?.location?.lng();
+                        const comps = place.address_components;
+
+                        const city = getAddressComponent(comps, 'locality')
+                            || getAddressComponent(comps, 'sublocality_level_1')
+                            || getAddressComponent(comps, 'administrative_area_level_2');
+                        const state = getAddressComponent(comps, 'administrative_area_level_1');
+                        const pincode = getAddressComponent(comps, 'postal_code');
+                        const phoneNumber = place.formatted_phone_number || place.international_phone_number || '';
+
+                        setNewLoc(prev => ({
+                            ...prev,
+                            name: placeName || prev.name,
+                            address: placeAddress,
+                            city,
+                            state,
+                            pincode,
+                            phone_number: phoneNumber || prev.phone_number,
+                            lat,
+                            lng,
+                        }));
+
+                        if (lat && lng) {
+                            setMapCenter({ lat, lng });
+                            setMarkerPos({ lat, lng });
+                        }
+                    }
+                }
+            );
+        } else if (e.latLng) {
+            // Regular map click (not a POI) — place marker and reverse geocode
+            const lat = e.latLng.lat();
+            const lng = e.latLng.lng();
+            setMarkerPos({ lat, lng });
+            setMapCenter({ lat, lng });
+
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                if (status === 'OK' && results && results[0]) {
+                    const result = results[0];
+                    const comps = result.address_components;
+                    const city = getAddressComponent(comps, 'locality')
+                        || getAddressComponent(comps, 'sublocality_level_1')
+                        || getAddressComponent(comps, 'administrative_area_level_2');
+                    const state = getAddressComponent(comps, 'administrative_area_level_1');
+                    const pincode = getAddressComponent(comps, 'postal_code');
+
+                    setNewLoc(prev => ({
+                        ...prev,
+                        address: result.formatted_address || '',
+                        city,
+                        state,
+                        pincode,
+                        lat,
+                        lng,
+                    }));
+                }
+            });
+        }
+    };
+
     const handleAddLocation = () => {
         if (newLoc.name.trim()) {
             onLocationsChange([...locations, { ...newLoc }]);
-            setNewLoc({ name: '', address: '', schedule: '' });
+            setNewLoc({ name: '', address: '', schedule: '', city: '', state: '', pincode: '', phone_number: '' });
             setMarkerPos(null);
             setIsAdding(false);
             setAddMode('manual');
@@ -95,7 +204,7 @@ const PracticeLocationAccordion: React.FC<PracticeLocationAccordionProps> = ({ l
 
     const resetForm = () => {
         setIsAdding(false);
-        setNewLoc({ name: '', address: '', schedule: '' });
+        setNewLoc({ name: '', address: '', schedule: '', city: '', state: '', pincode: '', phone_number: '' });
         setMarkerPos(null);
         setAddMode('manual');
     };
@@ -191,7 +300,10 @@ const PracticeLocationAccordion: React.FC<PracticeLocationAccordionProps> = ({ l
                                                 zoomControl: true,
                                                 mapTypeControl: false,
                                                 streetViewControl: false,
+                                                clickableIcons: true,
                                             }}
+                                            onLoad={(map) => setMapRef(map)}
+                                            onClick={onMapClick}
                                         >
                                             {markerPos && <MarkerF position={markerPos} />}
                                         </GoogleMap>
@@ -227,6 +339,34 @@ const PracticeLocationAccordion: React.FC<PracticeLocationAccordionProps> = ({ l
                                     placeholder="Full address"
                                     value={newLoc.address}
                                     onChange={(e) => setNewLoc({ ...newLoc, address: e.target.value })}
+                                />
+                            </div>
+                            <div className={styles.plAddFormRow} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                                <input
+                                    className={styles.input}
+                                    placeholder="City"
+                                    value={newLoc.city || ''}
+                                    onChange={(e) => setNewLoc({ ...newLoc, city: e.target.value })}
+                                />
+                                <input
+                                    className={styles.input}
+                                    placeholder="State"
+                                    value={newLoc.state || ''}
+                                    onChange={(e) => setNewLoc({ ...newLoc, state: e.target.value })}
+                                />
+                                <input
+                                    className={styles.input}
+                                    placeholder="Pincode"
+                                    value={newLoc.pincode || ''}
+                                    onChange={(e) => setNewLoc({ ...newLoc, pincode: e.target.value })}
+                                />
+                            </div>
+                            <div className={styles.plAddFormRow}>
+                                <input
+                                    className={styles.input}
+                                    placeholder="Phone number (optional)"
+                                    value={newLoc.phone_number || ''}
+                                    onChange={(e) => setNewLoc({ ...newLoc, phone_number: e.target.value })}
                                 />
                             </div>
                             <div className={styles.plAddFormRow}>
@@ -304,8 +444,16 @@ const Onboarding = () => {
     const doctorId = localStorage.getItem('doctor_id') || savedUser?.id || 'unknown';
     const tourKey = `caepy_tour_completed_${doctorId}`;
     const hasTourCompleted = localStorage.getItem(tourKey) === 'true';
-    const [showWelcome, setShowWelcome] = useState(!hasTourCompleted);
+
+    // Determine if dialog should be suppressed:
+    // If section >= 6 AND profile already submitted/verified, skip dialog entirely
+    const isProfileSubmitted = savedUser?.status === 'submitted' || savedUser?.status === 'verified';
+    const shouldSuppressDialog = currentStep >= 6 && isProfileSubmitted;
+    const [showWelcome, setShowWelcome] = useState(!hasTourCompleted && !shouldSuppressDialog);
     const [showTour, setShowTour] = useState(false);
+
+    // Show "Skip to Review" when user has completed section 3 or above
+    const showSkipButton = !isNewUser && currentStep >= 3;
 
     const handleStartTour = () => {
         setShowWelcome(false);
@@ -316,6 +464,12 @@ const Onboarding = () => {
     const handleSkipWelcome = () => {
         setShowWelcome(false);
         localStorage.setItem(tourKey, 'true');
+    };
+
+    const handleSkipToReview = () => {
+        setShowWelcome(false);
+        localStorage.setItem(tourKey, 'true');
+        navigate('/review', { state: { formData, fromOnboarding: true } });
     };
 
     const handleTourComplete = () => {
@@ -401,7 +555,7 @@ const Onboarding = () => {
         phone: string;
         specialty: string;
         primaryLocation: string;
-        practiceLocations: { name: string; address: string; schedule: string }[];
+        practiceLocations: { name: string; address: string; schedule: string; city?: string; state?: string; pincode?: string; phone_number?: string; lat?: number; lng?: number }[];
         experience: string;
         postSpecialisationExperience: string;
         registrationNumber: string;
@@ -443,9 +597,78 @@ const Onboarding = () => {
         };
     }
 
+    // Mapping from frontend field keys to backend API field_name values
+    const FIELD_NAME_MAP: Record<string, string> = {
+        specialty: 'specialty',
+        primaryLocation: 'primary_practice_location',
+        areasOfInterest: 'sub_specialties',
+        practiceSegments: 'practice_segments',
+        commonConditions: 'conditions_treated',
+        knownForConditions: 'procedures_performed',
+        wantToTreatConditions: 'conditions_treated',
+    };
+
+    // State for API-fetched dropdown options, keyed by frontend field name
+    const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
+
     useEffect(() => {
         setMasterData(getMasterData());
     }, []);
+
+    // Fetch dropdown options from the API on mount
+    useEffect(() => {
+        const fetchAllDropdowns = async () => {
+            const md = getMasterData();
+            const fieldKeys = Object.keys(FIELD_NAME_MAP);
+            const results: Record<string, DropdownOption[]> = {};
+
+            await Promise.all(
+                fieldKeys.map(async (fieldKey) => {
+                    const apiFieldName = FIELD_NAME_MAP[fieldKey];
+                    try {
+                        const apiOptions = await dropdownService.fetchDropdownOptions(apiFieldName);
+                        if (apiOptions.length > 0) {
+                            results[fieldKey] = apiOptions;
+                        } else {
+                            // Fallback to masterData
+                            results[fieldKey] = getFallbackOptions(fieldKey, md);
+                        }
+                    } catch {
+                        results[fieldKey] = getFallbackOptions(fieldKey, md);
+                    }
+                })
+            );
+
+            setDropdownOptions(results);
+        };
+
+        fetchAllDropdowns();
+    }, []);
+
+    // Fallback: convert masterData to DropdownOption[]
+    const getFallbackOptions = (fieldKey: string, md: MasterData): DropdownOption[] => {
+        const masterKeyMap: Record<string, keyof MasterData> = {
+            specialty: 'specialties',
+            primaryLocation: 'locations',
+            areasOfInterest: 'areasOfInterest',
+            practiceSegments: 'practiceSegments',
+            commonConditions: 'commonConditions',
+            knownForConditions: 'commonConditions',
+            wantToTreatConditions: 'commonConditions',
+        };
+        const masterKey = masterKeyMap[fieldKey];
+        if (!masterKey || !md[masterKey]) return [];
+        return md[masterKey].map(item => ({ value: item.value, label: item.value }));
+    };
+
+    // Handler for when a new option is added via CreatableDropdown
+    const handleOptionAdded = (fieldKey: string, newOption: DropdownOption) => {
+        setDropdownOptions(prev => ({
+            ...prev,
+            [fieldKey]: [...(prev[fieldKey] || []), newOption].sort((a, b) => a.label.localeCompare(b.label)),
+        }));
+        showToast(`"${newOption.label}" submitted for review`, 'success');
+    };
 
     // State for all form fields
     const defaultFormData: OnboardingFormData = {
@@ -837,19 +1060,16 @@ const Onboarding = () => {
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
                                     <label className={styles.label}>Specialty <span>*</span></label>
-                                    <select
+                                    <CreatableDropdown
                                         name="specialty"
                                         value={formData.specialty}
-                                        onChange={handleInputChange}
+                                        options={dropdownOptions.specialty || masterData.specialties.map(s => ({ value: s.value, label: s.value }))}
+                                        fieldName={FIELD_NAME_MAP.specialty}
+                                        placeholder="Select or type a specialty"
+                                        onChange={(val) => setFormData(prev => ({ ...prev, specialty: val }))}
                                         onFocus={() => setFocusedField('specialty')}
-                                        className={styles.input}
-                                        style={{ appearance: 'none', background: 'white' }}
-                                    >
-                                        <option value="">Select specialty</option>
-                                        {masterData.specialties.map(s => (
-                                            <option key={s.value} value={s.value}>{s.value}</option>
-                                        ))}
-                                    </select>
+                                        onOptionAdded={(opt) => handleOptionAdded('specialty', opt)}
+                                    />
                                 </div>
                             </div>
 
@@ -889,19 +1109,16 @@ const Onboarding = () => {
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
                                     <label className={styles.label}>Primary Practice Location <span>*</span></label>
-                                    <select
+                                    <CreatableDropdown
                                         name="primaryLocation"
                                         value={formData.primaryLocation}
-                                        onChange={handleInputChange}
+                                        options={dropdownOptions.primaryLocation || masterData.locations.map(loc => ({ value: loc.value, label: loc.value }))}
+                                        fieldName={FIELD_NAME_MAP.primaryLocation}
+                                        placeholder="Select or type a location"
+                                        onChange={(val) => setFormData(prev => ({ ...prev, primaryLocation: val }))}
                                         onFocus={() => setFocusedField('primaryLocation')}
-                                        className={styles.input}
-                                        style={{ appearance: 'none', background: 'white' }}
-                                    >
-                                        <option value="">Select location</option>
-                                        {masterData.locations.map(loc => (
-                                            <option key={loc.value} value={loc.value}>{loc.value}</option>
-                                        ))}
-                                    </select>
+                                        onOptionAdded={(opt) => handleOptionAdded('primaryLocation', opt)}
+                                    />
                                 </div>
                             </div>
 
@@ -1154,100 +1371,84 @@ const Onboarding = () => {
                         </div>
 
                         <div className={styles.formGrid}>
-                            {/* Dropdowns use select natively now, datalists removed */}
 
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
                                     <label className={styles.label}>Areas of Interest</label>
-                                    <select
+                                    <CreatableDropdown
                                         name="areasOfInterest"
                                         value={Array.isArray(formData.areasOfInterest) ? formData.areasOfInterest[0] || '' : formData.areasOfInterest}
-                                        onChange={(e) => handleArrayChange('areasOfInterest', e.target.value)}
+                                        options={dropdownOptions.areasOfInterest || (masterData.areasOfInterest || []).map(item => ({ value: item.value, label: item.value }))}
+                                        fieldName={FIELD_NAME_MAP.areasOfInterest}
+                                        placeholder="Select or type an area of interest"
+                                        onChange={(val) => handleArrayChange('areasOfInterest', val)}
                                         onFocus={() => setFocusedField('areasOfInterest')}
-                                        className={styles.input}
-                                        style={{ appearance: 'none', background: 'white' }}
-                                    >
-                                        <option value="">Select an area</option>
-                                        {masterData.areasOfInterest?.map(item => (
-                                            <option key={item.value} value={item.value}>{item.value}</option>
-                                        ))}
-                                    </select>
+                                        onOptionAdded={(opt) => handleOptionAdded('areasOfInterest', opt)}
+                                    />
                                 </div>
                             </div>
 
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
                                     <label className={styles.label}>Practice Segments</label>
-                                    <select
+                                    <CreatableDropdown
                                         name="practiceSegments"
                                         value={Array.isArray(formData.practiceSegments) ? formData.practiceSegments[0] || '' : formData.practiceSegments}
-                                        onChange={(e) => handleArrayChange('practiceSegments', e.target.value)}
+                                        options={dropdownOptions.practiceSegments || masterData.practiceSegments.map((item: any) => ({ value: item.value, label: item.value }))}
+                                        fieldName={FIELD_NAME_MAP.practiceSegments}
+                                        placeholder="Select or type a practice segment"
+                                        onChange={(val) => handleArrayChange('practiceSegments', val)}
                                         onFocus={() => setFocusedField('practiceSegments')}
-                                        className={styles.input}
-                                        style={{ appearance: 'none', background: 'white' }}
-                                    >
-                                        <option value="">Select a segment</option>
-                                        {masterData.practiceSegments.map((item: any) => (
-                                            <option key={item.value} value={item.value}>{item.value}</option>
-                                        ))}
-                                    </select>
+                                        onOptionAdded={(opt) => handleOptionAdded('practiceSegments', opt)}
+                                    />
                                 </div>
                             </div>
 
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
                                     <label className={styles.label}>Most Common Conditions Treated <span>*</span></label>
-                                    <select
+                                    <CreatableDropdown
                                         name="commonConditions"
                                         value={Array.isArray(formData.commonConditions) ? formData.commonConditions[0] || '' : formData.commonConditions}
-                                        onChange={(e) => handleArrayChange('commonConditions', e.target.value)}
+                                        options={dropdownOptions.commonConditions || masterData.commonConditions.map((item: any) => ({ value: item.value, label: item.value }))}
+                                        fieldName={FIELD_NAME_MAP.commonConditions}
+                                        placeholder="Select or type a condition"
+                                        onChange={(val) => handleArrayChange('commonConditions', val)}
                                         onFocus={() => setFocusedField('commonConditions')}
-                                        className={styles.input}
-                                        style={{ appearance: 'none', background: 'white' }}
-                                    >
-                                        <option value="">Select a condition</option>
-                                        {masterData.commonConditions.map((item: any) => (
-                                            <option key={item.value} value={item.value}>{item.value}</option>
-                                        ))}
-                                    </select>
+                                        onOptionAdded={(opt) => handleOptionAdded('commonConditions', opt)}
+                                    />
                                 </div>
                             </div>
 
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
                                     <label className={styles.label}>Known For (Specific Expertise) <span>*</span></label>
-                                    <select
+                                    <CreatableDropdown
                                         name="knownForConditions"
                                         value={Array.isArray(formData.knownForConditions) ? formData.knownForConditions[0] || '' : formData.knownForConditions}
-                                        onChange={(e) => handleArrayChange('knownForConditions', e.target.value)}
+                                        options={dropdownOptions.knownForConditions || masterData.commonConditions.map((item: any) => ({ value: item.value, label: item.value }))}
+                                        fieldName={FIELD_NAME_MAP.knownForConditions}
+                                        placeholder="Select or type a specific expertise"
+                                        onChange={(val) => handleArrayChange('knownForConditions', val)}
                                         onFocus={() => setFocusedField('knownForConditions')}
-                                        className={styles.input}
-                                        style={{ appearance: 'none', background: 'white' }}
-                                    >
-                                        <option value="">Select a condition</option>
-                                        {masterData.commonConditions.map((item: any) => (
-                                            <option key={item.value} value={item.value}>{item.value}</option>
-                                        ))}
-                                    </select>
+                                        onOptionAdded={(opt) => handleOptionAdded('knownForConditions', opt)}
+                                    />
                                 </div>
                             </div>
 
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
                                     <label className={styles.label}>Conditions You Want to Treat More</label>
-                                    <select
+                                    <CreatableDropdown
                                         name="wantToTreatConditions"
                                         value={formData.wantToTreatConditions}
-                                        onChange={handleInputChange}
+                                        options={dropdownOptions.wantToTreatConditions || masterData.commonConditions.map((item: any) => ({ value: item.value, label: item.value }))}
+                                        fieldName={FIELD_NAME_MAP.wantToTreatConditions}
+                                        placeholder="Select or type a condition"
+                                        onChange={(val) => setFormData(prev => ({ ...prev, wantToTreatConditions: val }))}
                                         onFocus={() => setFocusedField('wantToTreatConditions')}
-                                        className={styles.input}
-                                        style={{ appearance: 'none', background: 'white' }}
-                                    >
-                                        <option value="">Select a condition</option>
-                                        {masterData.commonConditions.map((item: any) => (
-                                            <option key={item.value} value={item.value}>{item.value}</option>
-                                        ))}
-                                    </select>
+                                        onOptionAdded={(opt) => handleOptionAdded('wantToTreatConditions', opt)}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -1289,147 +1490,157 @@ const Onboarding = () => {
                         <div className={styles.formGrid}>
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
-                                    <label className={styles.label}>What was the most challenging part of your training? (Max 2)</label>
-                                    <div className={styles.chipsContainer}>
-                                        {['Long hours', 'Emotional toll', 'Complexity of cases', 'Work-life balance', 'High pressure'].map(opt => (
-                                            <button
-                                                key={opt}
-                                                className={`${styles.chip} ${formData.trainingExperience?.includes(opt) ? styles.activeChip : ''}`}
-                                                onClick={() => {
-                                                    handleMultiSelect('trainingExperience', opt, 2);
-                                                    setFocusedField('trainingExperience');
-                                                }}
-                                                style={{
-                                                    padding: '0.5rem 1rem', borderRadius: '20px', border: formData.trainingExperience?.includes(opt) ? '1px solid #10B981' : '1px solid #E5E7EB',
-                                                    background: formData.trainingExperience?.includes(opt) ? '#D1FAE5' : 'white', cursor: 'pointer', color: '#374151'
-                                                }}
-                                            >
-                                                {opt}
-                                            </button>
-                                        ))}
+                                    <label className={styles.label}>What was the most challenging part of your training?</label>
+                                    <textarea
+                                        name="trainingExperience"
+                                        value={typeof formData.trainingExperience === 'string' ? formData.trainingExperience : (formData.trainingExperience || []).join(', ')}
+                                        onChange={handleInputChange}
+                                        onFocus={() => setFocusedField('trainingExperience')}
+                                        className={styles.input}
+                                        rows={3}
+                                        maxLength={100}
+                                        placeholder="e.g. Long hours, emotional toll..."
+                                    />
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.25rem' }}>
+                                        {(typeof formData.trainingExperience === 'string' ? formData.trainingExperience : (formData.trainingExperience || []).join(', ')).length} / 100
                                     </div>
                                 </div>
                             </div>
 
                             <div className={styles.fullWidth}>
-                                <label className={styles.label}>What keeps you going? (Choose up to 2)</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                    {['Helping patients', 'Clinical challenges', 'Professional growth', 'Teaching / mentoring', 'Recognition', 'Work–life balance'].map(opt => (
-                                        <button
-                                            key={opt}
-                                            className={`${styles.chip} ${formData.motivation?.includes(opt) ? styles.activeChip : ''}`}
-                                            onClick={() => {
-                                                handleMultiSelect('motivation', opt, 2);
-                                                setFocusedField('motivation');
-                                            }}
-                                            style={{
-                                                padding: '0.5rem 1rem', borderRadius: '20px', border: formData.motivation?.includes(opt) ? '1px solid #10B981' : '1px solid #E5E7EB',
-                                                background: formData.motivation?.includes(opt) ? '#D1FAE5' : 'white', cursor: 'pointer', color: '#374151'
-                                            }}
-                                        >
-                                            {opt}
-                                        </button>
-                                    ))}
+                                <div className={styles.inputWrapper}>
+                                    <label className={styles.label}>What keeps you going?</label>
+                                    <textarea
+                                        name="motivation"
+                                        value={typeof formData.motivation === 'string' ? formData.motivation : (formData.motivation || []).join(', ')}
+                                        onChange={handleInputChange}
+                                        onFocus={() => setFocusedField('motivation')}
+                                        className={styles.input}
+                                        rows={3}
+                                        maxLength={100}
+                                        placeholder="e.g. Helping patients, clinical challenges..."
+                                    />
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.25rem' }}>
+                                        {(typeof formData.motivation === 'string' ? formData.motivation : (formData.motivation || []).join(', ')).length} / 100
+                                    </div>
                                 </div>
                             </div>
 
                             <div className={styles.fullWidth}>
-                                <label className={styles.label}>How do you unwind? (Multi-select)</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                    {['Family time', 'Music', 'Reading', 'Sports', 'Meditation', 'Academic work', 'Movies / entertainment'].map(opt => (
-                                        <button
-                                            key={opt}
-                                            className={`${styles.chip} ${formData.unwinding?.includes(opt) ? styles.activeChip : ''}`}
-                                            onClick={() => {
-                                                handleMultiSelect('unwinding', opt);
-                                                setFocusedField('unwinding');
-                                            }}
-                                            style={{
-                                                padding: '0.5rem 1rem', borderRadius: '20px', border: formData.unwinding?.includes(opt) ? '1px solid #10B981' : '1px solid #E5E7EB',
-                                                background: formData.unwinding?.includes(opt) ? '#D1FAE5' : 'white', cursor: 'pointer', color: '#374151'
-                                            }}
-                                        >
-                                            {opt}
-                                        </button>
-                                    ))}
+                                <div className={styles.inputWrapper}>
+                                    <label className={styles.label}>How do you unwind?</label>
+                                    <textarea
+                                        name="unwinding"
+                                        value={typeof formData.unwinding === 'string' ? formData.unwinding : (formData.unwinding || []).join(', ')}
+                                        onChange={handleInputChange}
+                                        onFocus={() => setFocusedField('unwinding')}
+                                        className={styles.input}
+                                        rows={3}
+                                        maxLength={100}
+                                        placeholder="e.g. Family time, reading, sports..."
+                                    />
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.25rem' }}>
+                                        {(typeof formData.unwinding === 'string' ? formData.unwinding : (formData.unwinding || []).join(', ')).length} / 100
+                                    </div>
                                 </div>
                             </div>
 
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
                                     <label className={styles.label}>How would you like to be recognised?</label>
-                                    <select
+                                    <textarea
                                         name="recognition"
                                         value={formData.recognition}
                                         onChange={handleInputChange}
                                         onFocus={() => setFocusedField('recognition')}
                                         className={styles.input}
-                                        style={{ appearance: 'none', background: 'white' }}
-                                    >
-                                        <option value="">Select option</option>
-                                        {['Dedicated', 'Knowledgeable', 'Compassionate', 'Calm', 'Driven', 'Innovative'].map(opt => (
-                                            <option key={opt} value={opt}>{opt}</option>
-                                        ))}
-                                    </select>
+                                        rows={3}
+                                        maxLength={100}
+                                        placeholder="e.g. Compassionate, dedicated, innovative..."
+                                    />
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.25rem' }}>
+                                        {(formData.recognition || '').length} / 100
+                                    </div>
                                 </div>
                             </div>
+
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
                                     <label className={styles.label}>How do you prefer to spend quality time?</label>
-                                    <select
+                                    <textarea
                                         name="qualityTime"
                                         value={formData.qualityTime}
                                         onChange={handleInputChange}
                                         onFocus={() => setFocusedField('qualityTime')}
                                         className={styles.input}
-                                        style={{ appearance: 'none', background: 'white' }}
-                                    >
-                                        <option value="">Select option</option>
-                                        {['Travel', 'Reading', 'Academics / writing', 'Arts / music', 'Networking', 'Entrepreneurship'].map(opt => (
-                                            <option key={opt} value={opt}>{opt}</option>
-                                        ))}
-                                    </select>
+                                        rows={3}
+                                        maxLength={100}
+                                        placeholder="e.g. Travel, reading, arts, networking..."
+                                    />
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.25rem' }}>
+                                        {(formData.qualityTime || '').length} / 100
+                                    </div>
                                 </div>
                             </div>
 
                             <div className={styles.fullWidth}>
                                 <div className={styles.inputWrapper}>
                                     <label className={styles.label}>Reflective Prompts (Optional)</label>
-                                    <input
+                                    <textarea
                                         name="proudAchievement"
                                         value={formData.proudAchievement}
                                         onChange={handleInputChange}
                                         onFocus={() => setFocusedField('proudAchievement')}
                                         className={styles.input}
+                                        rows={2}
+                                        maxLength={100}
                                         placeholder="One professional achievement you are proud of"
-                                        style={{ marginBottom: '0.5rem' }}
+                                        style={{ marginBottom: '0.25rem' }}
                                     />
-                                    <input
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.125rem', marginBottom: '0.5rem' }}>
+                                        {(formData.proudAchievement || '').length} / 100
+                                    </div>
+                                    <textarea
                                         name="personalAchievement"
                                         value={formData.personalAchievement}
                                         onChange={handleInputChange}
                                         onFocus={() => setFocusedField('personalAchievement')}
                                         className={styles.input}
+                                        rows={2}
+                                        maxLength={100}
                                         placeholder="One personal achievement outside medicine"
-                                        style={{ marginBottom: '0.5rem' }}
+                                        style={{ marginBottom: '0.25rem' }}
                                     />
-                                    <input
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.125rem', marginBottom: '0.5rem' }}>
+                                        {(formData.personalAchievement || '').length} / 100
+                                    </div>
+                                    <textarea
                                         name="professionalAspiration"
                                         value={formData.professionalAspiration}
                                         onChange={handleInputChange}
                                         onFocus={() => setFocusedField('professionalAspiration')}
                                         className={styles.input}
+                                        rows={2}
+                                        maxLength={100}
                                         placeholder="Professional aspiration"
-                                        style={{ marginBottom: '0.5rem' }}
+                                        style={{ marginBottom: '0.25rem' }}
                                     />
-                                    <input
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.125rem', marginBottom: '0.5rem' }}>
+                                        {(formData.professionalAspiration || '').length} / 100
+                                    </div>
+                                    <textarea
                                         name="personalAspiration"
                                         value={formData.personalAspiration}
                                         onChange={handleInputChange}
                                         onFocus={() => setFocusedField('personalAspiration')}
                                         className={styles.input}
+                                        rows={2}
+                                        maxLength={100}
                                         placeholder="Personal aspiration"
                                     />
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.125rem' }}>
+                                        {(formData.personalAspiration || '').length} / 100
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1463,7 +1674,11 @@ const Onboarding = () => {
                                         onFocus={() => setFocusedField('patientValue')}
                                         className={styles.input}
                                         rows={3}
+                                        maxLength={100}
                                     />
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.25rem' }}>
+                                        {(formData.patientValue || '').length} / 100
+                                    </div>
                                 </div>
                             </div>
 
@@ -1477,7 +1692,11 @@ const Onboarding = () => {
                                         onFocus={() => setFocusedField('careApproach')}
                                         className={styles.input}
                                         rows={3}
+                                        maxLength={100}
                                     />
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.25rem' }}>
+                                        {(formData.careApproach || '').length} / 100
+                                    </div>
                                 </div>
                             </div>
 
@@ -1491,7 +1710,11 @@ const Onboarding = () => {
                                         onFocus={() => setFocusedField('practicePhilosophy')}
                                         className={styles.input}
                                         rows={3}
+                                        maxLength={100}
                                     />
+                                    <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#9CA3AF', marginTop: '0.25rem' }}>
+                                        {(formData.practicePhilosophy || '').length} / 100
+                                    </div>
                                 </div>
                             </div>
 
@@ -1804,8 +2027,10 @@ const Onboarding = () => {
                 userName={formData.fullName || savedUser?.name}
                 currentStep={currentStep}
                 totalSteps={6}
+                showSkipButton={showSkipButton}
                 onStartTour={handleStartTour}
                 onSkip={handleSkipWelcome}
+                onSkipToReview={handleSkipToReview}
             />
 
             <GuidedTour

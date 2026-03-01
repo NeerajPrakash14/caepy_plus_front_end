@@ -33,10 +33,13 @@ export interface DoctorProfile {
         address?: string;
         city?: string;
         state?: string;
+        pincode?: string;
         phone_number?: string;
         consultation_fee?: number;
         consultation_type?: string;
         weekly_schedule?: string;
+        lat?: number;
+        lng?: number;
     }>;
     qualifications: string[];
     onboarding_source: string | null;
@@ -187,13 +190,29 @@ export const doctorService = {
         }
         if (profile.primary_practice_location) formData.primaryLocation = profile.primary_practice_location;
 
-        if (profile.centres_of_practice?.length) {
-            formData.practiceLocations = profile.centres_of_practice;
-        } else if (profile.practice_locations?.length) {
-            formData.practiceLocations = profile.practice_locations
-                .map(loc => loc.hospital_name || '')
-                .filter(Boolean);
+        // Practice locations — the form expects an array of objects:
+        //   { name, address, schedule, city?, state?, pincode?, phone_number?, lat?, lng? }
+        if (profile.practice_locations?.length) {
+            formData.practiceLocations = profile.practice_locations.map(loc => ({
+                name: loc.hospital_name || '',
+                address: loc.address || '',
+                schedule: loc.weekly_schedule || '',
+                city: loc.city || '',
+                state: loc.state || '',
+                pincode: loc.pincode || '',
+                phone_number: loc.phone_number || '',
+                lat: loc.lat,
+                lng: loc.lng,
+            }));
+        } else if (profile.centres_of_practice?.length) {
+            // Fallback: centres_of_practice is a flat string array (just names)
+            formData.practiceLocations = profile.centres_of_practice.map(name => ({
+                name,
+                address: '',
+                schedule: '',
+            }));
         }
+
         if (profile.years_of_clinical_experience != null) {
             formData.experience = String(profile.years_of_clinical_experience);
         } else if (profile.years_of_experience != null) {
@@ -330,9 +349,13 @@ export const doctorService = {
                 practiceLocations = formData.practiceLocations.map((loc: any) => ({
                     hospital_name: loc.name || loc.hospital_name || null,
                     address: loc.address || null,
-                    weekly_schedule: loc.timings || loc.weekly_schedule || null,
+                    weekly_schedule: loc.timings || loc.weekly_schedule || loc.schedule || null,
                     city: loc.city || null,
                     state: loc.state || null,
+                    pincode: loc.pincode || null,
+                    phone_number: loc.phone_number || null,
+                    lat: loc.lat || null,
+                    lng: loc.lng || null,
                 }));
             }
         }
@@ -485,8 +508,14 @@ export const doctorService = {
             // "practiceLocations: [], // Array of { name, address, timings }"
             formData.practiceLocations = data.practice_locations.map(loc => ({
                 name: loc.hospital_name,
-                address: loc.location || '',
-                timings: ''
+                address: loc.location || loc.address || '',
+                schedule: loc.weekly_schedule || '',
+                city: loc.city || '',
+                state: loc.state || '',
+                pincode: loc.pincode || '',
+                phone_number: loc.phone_number || '',
+                lat: loc.lat,
+                lng: loc.lng,
             }));
 
             // Also set primary location to the first one
@@ -543,6 +572,14 @@ export interface ResumeExtractedData {
     practice_locations: Array<{
         hospital_name: string | null;
         location: string | null;
+        address?: string | null;
+        city?: string | null;
+        state?: string | null;
+        pincode?: string | null;
+        phone_number?: string | null;
+        weekly_schedule?: string | null;
+        lat?: number;
+        lng?: number;
         is_current: boolean;
     }>;
     skills_and_expertise: string[];

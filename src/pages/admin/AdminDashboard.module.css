@@ -161,3 +161,95 @@
 .viewBtn:hover {
     background: #EFF6FF;
 }
+
+.statusRejected {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+/* Bulk Upload Modal */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modalContent {
+    background: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    width: 720px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.dropZone {
+    border: 2px dashed #D1D5DB;
+    border-radius: 0.75rem;
+    padding: 2.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #F9FAFB;
+}
+
+.dropZone:hover,
+.dropZoneDragOver {
+    border-color: #3B82F6;
+    background: #EFF6FF;
+}
+
+.previewTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    margin-top: 1rem;
+}
+
+.previewTable th {
+    background: #F3F4F6;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #6B7280;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.previewTable td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #F3F4F6;
+    color: #374151;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.primaryBtn {
+    padding: 0.625rem 1.5rem;
+    background: #3B82F6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.2s;
+}
+
+.primaryBtn:hover {
+    background: #2563EB;
+}
+
+.primaryBtn:disabled {
+    background: #93C5FD;
+    cursor: not-allowed;
+}
