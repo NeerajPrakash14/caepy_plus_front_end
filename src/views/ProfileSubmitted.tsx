@@ -13,7 +13,7 @@ const ProfileSubmitted = () => {
             const s = JSON.parse(sessionStorage.getItem('nav_state') || '{}');
             if (s.formData) setFormData(s.formData);
             sessionStorage.removeItem('nav_state');
-        } catch {}
+        } catch { }
     }, []);
 
     const getVal = (k: string) => formData[k] || '---';
@@ -115,13 +115,13 @@ const ProfileSubmitted = () => {
 
                 {/* Action Buttons */}
                 <div className={styles.actionButtons}>
-                    <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ formData })); router.push('/profile-summary'); }}>
+                    <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ formData })); router.push('/doctor/profile-summary'); }}>
                         <Eye size={18} /> Preview Public Profile
                     </button>
-                    <button className={styles.btn} onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ formData, step: 1 })); router.push('/onboarding'); }}>
+                    <button className={styles.btn} onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ formData, step: 1 })); router.push('/doctor/onboarding'); }}>
                         <Edit2 size={18} /> Edit Details
                     </button>
-                    <button className={styles.btn} onClick={() => router.push('/profile')}>
+                    <button className={styles.btn} onClick={() => router.push('/doctor/profile')}>
                         <LayoutGrid size={18} /> Go to Dashboard
                     </button>
                 </div>

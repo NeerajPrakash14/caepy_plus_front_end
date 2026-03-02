@@ -23,7 +23,7 @@ const ReviewProfile = () => {
             if (s.formData) setFormData(s.formData);
             if (s.stage) setStage(s.stage);
             sessionStorage.removeItem('nav_state');
-        } catch {}
+        } catch { }
     }, []);
 
     // Toast State
@@ -82,7 +82,7 @@ const ReviewProfile = () => {
             // 4. Redirect
             setTimeout(() => {
                 sessionStorage.setItem('nav_state', JSON.stringify({ formData }));
-                router.push('/submitted');
+                router.push('/doctor/submitted');
             }, 1000);
 
         } catch (err: any) {
@@ -102,12 +102,12 @@ const ReviewProfile = () => {
             }
         }
         sessionStorage.setItem('nav_state', JSON.stringify({ formData, step: 4 }));
-        router.push('/onboarding');
+        router.push('/doctor/onboarding');
     };
 
     const handleEditSection = (step: number) => {
         sessionStorage.setItem('nav_state', JSON.stringify({ formData, step }));
-        router.push('/onboarding');
+        router.push('/doctor/onboarding');
     };
 
     return (
@@ -259,7 +259,7 @@ const ReviewProfile = () => {
                 </div>
 
                 <div className={styles.actions}>
-                    <button className={styles.backButton} onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ formData, step: stage === 'intermediate' ? 3 : 6 })); router.push('/onboarding'); }}>
+                    <button className={styles.backButton} onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ formData, step: stage === 'intermediate' ? 3 : 6 })); router.push('/doctor/onboarding'); }}>
                         <ArrowLeft size={16} /> Go Back to Edit
                     </button>
                 </div>

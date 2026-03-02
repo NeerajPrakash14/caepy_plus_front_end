@@ -27,19 +27,19 @@ const Sidebar: React.FC = () => {
 
             <nav className={styles.navGroup}>
                 <NavItem
-                    to="/onboarding"
+                    to="/doctor/onboarding"
                     icon={<FileText size={20} />}
                     label="Onboarding"
                     isCollapsed={isCollapsed}
                 />
                 <NavItem
-                    to="/profile"
+                    to="/doctor/profile"
                     icon={<LayoutGrid size={20} />}
                     label="Dashboard"
                     isCollapsed={isCollapsed}
                 />
                 <NavItem
-                    to="/profile-summary"
+                    to="/doctor/profile-summary"
                     icon={<User size={20} />}
                     label="Profile"
                     isCollapsed={isCollapsed}

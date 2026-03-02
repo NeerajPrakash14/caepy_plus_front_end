@@ -20,7 +20,7 @@ const ProfileSummary = () => {
 
     const handleEditProfile = () => {
         sessionStorage.setItem('nav_state', JSON.stringify({ formData, step: 1 }));
-        router.push('/onboarding');
+        router.push('/doctor/onboarding');
     };
 
     const InfoRow = ({ label, value }: { label: string, value: string | React.ReactNode }) => (

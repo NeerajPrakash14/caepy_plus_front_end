@@ -406,7 +406,7 @@ const Onboarding = () => {
     const router = useRouter();
     const [navState, setNavState] = useState<Record<string, any>>({});
     useEffect(() => {
-        try { const s = JSON.parse(sessionStorage.getItem('nav_state') || '{}'); setNavState(s); sessionStorage.removeItem('nav_state'); } catch {}
+        try { const s = JSON.parse(sessionStorage.getItem('nav_state') || '{}'); setNavState(s); sessionStorage.removeItem('nav_state'); } catch { }
     }, []);
 
     // Toast State
@@ -473,7 +473,7 @@ const Onboarding = () => {
     const handleSkipToReview = () => {
         setShowWelcome(false);
         localStorage.setItem(tourKey, 'true');
-        sessionStorage.setItem('nav_state', JSON.stringify({ formData, fromOnboarding: true })); router.push('/review');
+        sessionStorage.setItem('nav_state', JSON.stringify({ formData, fromOnboarding: true })); router.push('/doctor/review');
     };
 
     const handleTourComplete = () => {
@@ -1915,7 +1915,7 @@ const Onboarding = () => {
 
         if (currentStep === 3) {
             // Updated Flow: Review after Step 3
-            sessionStorage.setItem('nav_state', JSON.stringify({ formData, stage: 'intermediate' })); router.push('/review');
+            sessionStorage.setItem('nav_state', JSON.stringify({ formData, stage: 'intermediate' })); router.push('/doctor/review');
             return;
         }
 
@@ -1924,7 +1924,7 @@ const Onboarding = () => {
             setFocusedField(''); // Reset focus
         } else {
             // Final Step
-            sessionStorage.setItem('nav_state', JSON.stringify({ formData, stage: 'final' })); router.push('/review');
+            sessionStorage.setItem('nav_state', JSON.stringify({ formData, stage: 'final' })); router.push('/doctor/review');
         }
     };
 

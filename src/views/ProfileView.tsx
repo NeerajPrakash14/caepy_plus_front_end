@@ -23,7 +23,7 @@ const ProfileView = () => {
             const s = JSON.parse(sessionStorage.getItem('nav_state') || '{}');
             if (s.formData) setNavFormData(s.formData);
             sessionStorage.removeItem('nav_state');
-        } catch {}
+        } catch { }
     }, []);
 
     const formData = {
@@ -99,8 +99,8 @@ const ProfileView = () => {
                                             {isVerified ? 'Verified Profile' : 'Not-Verified'}
                                         </span>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <button className={styles.editBtn} onClick={() => router.push('/onboarding')}>Edit Profile</button>
-                                            <button className={styles.viewProfileBtn} onClick={() => router.push('/profile-summary')}>View Profile</button>
+                                            <button className={styles.editBtn} onClick={() => router.push('/doctor/onboarding')}>Edit Profile</button>
+                                            <button className={styles.viewProfileBtn} onClick={() => router.push('/doctor/profile-summary')}>View Profile</button>
                                         </div>
                                     </div>
                                 </div>

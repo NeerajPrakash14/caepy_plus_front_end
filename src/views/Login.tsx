@@ -52,7 +52,7 @@ const Login = () => {
         console.log("Routing user:", profile);
 
         if (profile.status === 'submitted' || profile.status === 'verified') {
-            router.push('/profile');
+            router.push('/doctor/profile');
         } else {
             // In-progress - determine where to send
             const totalSteps = 7;
@@ -61,13 +61,13 @@ const Login = () => {
             if (completionPercent > 75) {
                 // High completion – go straight to dashboard
                 sessionStorage.setItem('nav_state', JSON.stringify({ isNewUser }));
-                router.push('/dashboard');
+                router.push('/doctor/dashboard');
             } else if (isNewUser && profile.currentStep === 0) {
                 sessionStorage.setItem('nav_state', JSON.stringify({ isNewUser }));
-                router.push('/resume-upload');
+                router.push('/doctor/resume-upload');
             } else {
                 sessionStorage.setItem('nav_state', JSON.stringify({ isNewUser }));
-                router.push('/onboarding');
+                router.push('/doctor/onboarding');
             }
         }
     };

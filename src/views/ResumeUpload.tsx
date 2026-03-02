@@ -18,7 +18,7 @@ const ResumeUpload = () => {
             const s = JSON.parse(sessionStorage.getItem('nav_state') || '{}');
             if (s.isNewUser !== undefined) setIsNewUser(s.isNewUser);
             sessionStorage.removeItem('nav_state');
-        } catch {}
+        } catch { }
     }, []);
 
     const [isUploading, setIsUploading] = useState(false);
@@ -39,7 +39,7 @@ const ResumeUpload = () => {
             const extractedData = await doctorService.extractResume(file);
             console.log("Resume extracted:", extractedData);
             sessionStorage.setItem('nav_state', JSON.stringify({ isNewUser, formData: extractedData }));
-            router.push('/onboarding');
+            router.push('/doctor/onboarding');
         } catch (err) {
             console.error("Extraction failed:", err);
             setError("Failed to process resume. Please try again or skip.");
@@ -50,7 +50,7 @@ const ResumeUpload = () => {
 
     const handleSkip = () => {
         sessionStorage.setItem('nav_state', JSON.stringify({ isNewUser }));
-        router.push('/onboarding');
+        router.push('/doctor/onboarding');
     };
 
     return (
