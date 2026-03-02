@@ -44,27 +44,14 @@ const AdminDoctorDetails = () => {
         })();
     }, [routeId, doctor?.id]);
 
-    if (isFetching) {
-        return (
-            <div className={styles.container} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-                <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
-                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-            </div>
-        );
-    }
-
-    if (!doctor && !profile) {
-        return <div className={styles.container}>Doctor not found. <button onClick={() => navigate('/admin/dashboard')}>Go Back</button></div>;
-    }
-
     // Build display data — prefer profile (API) over navigation-state doctor
     const identity = profile?.identity;
     const details = profile?.details;
     const media = profile?.media || [];
 
     const doctorName = identity
-        ? `${identity.first_name} ${identity.last_name}`.trim() || 'Unnamed'
-        : doctor?.full_name || `${doctor?.first_name} ${doctor?.last_name}`;
+        ? [identity.first_name, identity.last_name].filter(Boolean).join(' ').trim() || (identity as any).full_name || 'Unnamed'
+        : doctor?.full_name || [doctor?.first_name, doctor?.last_name].filter(Boolean).join(' ').trim() || 'Unnamed';
 
     const email = identity?.email || doctor?.email || '';
     const phone = identity?.phone_number || doctor?.phone || '';
@@ -120,6 +107,19 @@ We encourage you to review the feedback above, update your profile accordingly, 
 Best regards,
 The Caepy Team`,
     }), [doctorName, specialty, regNumber, email]);
+
+    if (isFetching) {
+        return (
+            <div className={styles.container} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+                <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
+                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+            </div>
+        );
+    }
+
+    if (!doctor && !profile) {
+        return <div className={styles.container}>Doctor not found. <button onClick={() => navigate('/admin/dashboard')}>Go Back</button></div>;
+    }
 
     const openVerifyDialog = () => {
         const content = getVerifyEmailContent();
