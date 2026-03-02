@@ -1,3 +1,5 @@
+import { isBrowser } from './isBrowser';
+
 export interface AdminUser {
     id: string;
     name: string;
@@ -26,6 +28,7 @@ const DEFAULT_ADMINS: AdminUser[] = [
 ];
 
 export const initializeAdminData = () => {
+    if (!isBrowser()) return;
     const existing = localStorage.getItem(STORAGE_KEY);
     if (!existing) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ADMINS));
@@ -69,6 +72,7 @@ export const getCurrentUserRole = (email: string): 'admin' | 'operation' | null 
 
 // Helper to simulate "current logged in user" since we don't have full auth yet
 export const getLoggedInAdmin = (): AdminUser | null => {
+    if (!isBrowser()) return null;
     const email = localStorage.getItem('caepy_logged_in_email');
     if (!email) return null;
 

@@ -1,5 +1,7 @@
+'use client';
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
     LayoutGrid, FileText, User,
     ChevronLeft, ChevronRight
@@ -56,17 +58,17 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed }) => {
+    const pathname = usePathname();
+    const isActive = pathname === to;
     return (
-        <NavLink
-            to={to}
-            className={({ isActive }) =>
-                `${styles.navItem} ${isActive ? styles.active : ''}`
-            }
+        <Link
+            href={to}
+            className={`${styles.navItem} ${isActive ? styles.active : ''}`}
             title={isCollapsed ? label : undefined}
         >
             <span className={styles.icon}>{icon}</span>
             <span className={styles.label}>{label}</span>
-        </NavLink>
+        </Link>
     );
 };
 

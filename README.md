@@ -1,73 +1,105 @@
-# React + TypeScript + Vite
+# CAEPY — Doctor Onboarding Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+AI-assisted doctor onboarding platform built with **Next.js**, **React 19**, and **TypeScript**.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Framework:** Next.js 16 (App Router, Turbopack)
+- **Language:** TypeScript 5.9
+- **Styling:** CSS Modules + CSS custom properties
+- **Auth:** Firebase (Google sign-in) + OTP via API
+- **API Client:** Axios with request/response interceptors
+- **Animations:** Framer Motion
+- **Icons:** Lucide React
+- **Maps:** Google Maps API (`@react-google-maps/api`)
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
 
-## Expanding the ESLint configuration
+- Node.js 20+
+- npm 10+
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Install & Run
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open [http://localhost:3000](http://localhost:3000).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Environment Variables
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Copy `.env.example` to `.env` and fill in the values:
+
+```bash
+cp .env.example .env
 ```
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_API_URL` | Backend API base URL |
+| `NEXT_PUBLIC_BASE_PATH` | Sub-path if app is not served at root |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps for practice location picker |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase project API key |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase app ID |
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server (Turbopack) |
+| `npm run build` | Production build |
+| `npm start` | Start production server |
+| `npm run lint` | Run ESLint |
+
+## Project Structure
+
+```
+app/                        # Next.js App Router pages & layouts
+├── layout.tsx              # Root layout (html, body, metadata)
+├── page.tsx                # / → redirects to /login
+├── login/                  # Login page
+├── resume-upload/          # Resume upload (protected)
+├── (doctor)/               # Route group: doctor pages with Header + Sidebar
+│   ├── layout.tsx
+│   ├── onboarding/
+│   ├── dashboard/
+│   ├── profile/
+│   ├── profile-summary/
+│   ├── review/
+│   └── submitted/
+└── admin/                  # Admin section
+    ├── login/
+    └── (dashboard)/        # Route group: admin pages with Header + AdminSidebar
+        ├── layout.tsx
+        ├── dashboard/
+        ├── doctors/
+        ├── doctor/[id]/
+        ├── users/
+        └── masters/
+
+src/
+├── views/                  # Page-level React components
+├── components/             # Shared UI components
+├── layouts/                # Layout CSS modules
+├── hooks/                  # Custom hooks (useAssistant)
+├── lib/                    # Utilities (api, firebase, validation)
+└── services/               # API service layers
+```
+
+## Docker
+
+```bash
+# Build and run locally
+docker compose up --build
+
+# Open http://localhost:3000
+```
+
+The Dockerfile uses Next.js standalone output (`node server.js`) for a minimal production image.

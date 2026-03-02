@@ -1,18 +1,21 @@
+'use client';
 import React from 'react';
-import { Outlet } from 'react-router-dom';
 import Header from '../components/Header';
 import AdminSidebar from '../components/AdminSidebar';
-
 import styles from './MainLayout.module.css';
 
-const AdminLayout: React.FC = () => {
+interface AdminLayoutProps {
+    children?: React.ReactNode;
+}
+
+const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     return (
         <div className={styles.layoutWrapper}>
             <Header centerTitle="Admin Console" />
             <div className={styles.mainContentWrapper}>
                 <AdminSidebar />
                 <main className={styles.mainContent}>
-                    <Outlet />
+                    {children}
                 </main>
             </div>
         </div>

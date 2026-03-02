@@ -1,20 +1,3 @@
-# ============================================================
-# docker-compose.yml — Local container testing
-# ============================================================
-# Lets you test the production Docker build locally without
-# needing to remember any --build-arg commands.
-#
-# USAGE:
-#   1. Copy .env.example → .env.docker and fill in real values
-#   2. docker compose up --build
-#   3. Open http://localhost:3000
-#
-# The frontend will proxy /api/* to the backend container.
-# If you're running the backend separately (e.g. `npm run dev`
-# in the backend repo), change BACKEND_URL below to:
-#   BACKEND_URL=http://host.docker.internal:8000
-# ============================================================
-
 version: "3.9"
 
 services:
@@ -23,33 +6,23 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # These are Vite build-time variables — baked into the JS bundle.
-        # They are NOT available at runtime; change them requires a rebuild.
-        VITE_API_URL: /api/v1
-        # Set this to the sub-path your app lives at (leave empty for root):
-        # e.g. VITE_BASE_PATH: doctor-portal → domain.com/doctor-portal
-        VITE_BASE_PATH: ${VITE_BASE_PATH:-}
-        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY}
-        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
-        VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN}
-        VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
-        VITE_FIREBASE_STORAGE_BUCKET: ${VITE_FIREBASE_STORAGE_BUCKET}
-        VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID}
-        VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID}
+        NEXT_PUBLIC_API_URL: /api/v1
+        NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
     environment:
-      # Since we are using Node 'serve' to host static files (no NGINX proxy),
-      # runtime VITE_ vars are not available unless re-built or window injecting is used.
       NODE_ENV: production
     ports:
-      - "3000:3000" # Visit http://localhost:3000 in your browser
+      - "3000:3000"
     depends_on:
       - backend
 
-  # ── Placeholder for your backend service ──────────────────
-  # Replace this with your actual backend image / build config.
-  # Remove this block if you're running the backend separately.
   backend:
-    image: your-backend-image:latest # ← UPDATE THIS
+    image: your-backend-image:latest
     ports:
       - "8000:8000"
-    # env_file: ../caepy_backend/.env   # ← uncomment if backend has its own .env

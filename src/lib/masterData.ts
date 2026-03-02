@@ -1,3 +1,5 @@
+import { isBrowser } from './isBrowser';
+
 export interface MasterItem {
     value: string;
     created_by: string;
@@ -64,6 +66,7 @@ const migrateData = (raw: any): MasterData => {
 };
 
 export const getMasterData = (): MasterData => {
+    if (!isBrowser()) return DEFAULT_MASTER_DATA;
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_MASTER_DATA));

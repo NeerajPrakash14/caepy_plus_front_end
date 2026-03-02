@@ -1,4 +1,4 @@
-# Logs
+# ─── Logs ─────────────────────────────────────────────────────────────────────
 logs
 *.log
 npm-debug.log*
@@ -7,18 +7,57 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# ─── Dependency directories ───────────────────────────────────────────────────
+node_modules/
+
+# ─── Build outputs ────────────────────────────────────────────────────────────
+dist/
+dist-ssr/
+build/
+out/
+.next/
+.nuxt/
+.output/
+
+# ─── Caches ───────────────────────────────────────────────────────────────────
+.vite/
+.turbo/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+
+# ─── Environment / Secrets ────────────────────────────────────────────────────
+# Do NOT commit real secrets — keep .env.example in git instead
+.env
+.env.*
+!.env.example
+!.env.sample
 *.local
 
-# Editor directories and files
+# ─── Next.js auto-generated ───────────────────────────────────────────────────
+next-env.d.ts
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── OS artifacts ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Editor directories and files ─────────────────────────────────────────────
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# ─── Misc tooling ─────────────────────────────────────────────────────────────
+skills-lock.json
+
+# ─── Generated at build time ──────────────────────────────────────────────────
+public/healthz.json

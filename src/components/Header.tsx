@@ -1,5 +1,6 @@
+'use client';
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRouter, usePathname } from 'next/navigation';
 import { Stethoscope, Bell, Settings, User, CheckCircle, FileText, CreditCard, HelpCircle, Phone, LogOut } from 'lucide-react';
 import styles from './Header.module.css';
 import { authService } from '../services/authService';
@@ -12,8 +13,8 @@ import { mockDataService } from '../services/mockDataService';
 
 const Header: React.FC<HeaderProps> = ({ centerTitle }) => {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null); // 'notifications', 'settings', 'profile', or null
-    const navigate = useNavigate();
-    const location = useLocation();
+    const router = useRouter();
+    const pathname = usePathname();
 
     const user = mockDataService.getCurrentUser();
     // Access name from root or nested data. Fallback to Anonymous.
@@ -25,10 +26,10 @@ const Header: React.FC<HeaderProps> = ({ centerTitle }) => {
         // Clear all auth and user data from localStorage
         authService.clearSession();
 
-        if (location.pathname.startsWith('/admin')) {
-            navigate('/admin/login', { replace: true });
+        if (pathname.startsWith('/admin')) {
+            router.replace('/admin/login');
         } else {
-            navigate('/login', { replace: true });
+            router.replace('/login');
         }
     };
 

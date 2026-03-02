@@ -1,32 +1,36 @@
-import { Navigate, useLocation } from 'react-router-dom';
+'use client';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 interface ProtectedRouteProps {
     children: ReactNode;
 }
 
-/**
- * Checks for access_token and doctor_id in localStorage.
- * If either is missing, redirects to /login.
- */
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-    const location = useLocation();
-    const accessToken = localStorage.getItem('access_token');
-    const doctorId = localStorage.getItem('doctor_id');
+    const router = useRouter();
+    const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
 
-    if (!accessToken || !doctorId) {
-        // Clear any partial auth data
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('token_type');
-        localStorage.removeItem('expires_in');
-        localStorage.removeItem('doctor_id');
-        localStorage.removeItem('mobile_number');
-        localStorage.removeItem('is_new_user');
-        localStorage.removeItem('role');
-        localStorage.removeItem('doctor_profile');
-        localStorage.removeItem('caepy_current_user_id');
+    useEffect(() => {
+        const accessToken = localStorage.getItem('access_token');
+        const doctorId = localStorage.getItem('doctor_id');
 
-        return <Navigate to="/login" state={{ from: location }} replace />;
+        if (!accessToken || !doctorId) {
+            const keysToRemove = [
+                'access_token', 'token_type', 'expires_in',
+                'doctor_id', 'mobile_number', 'is_new_user',
+                'role', 'doctor_profile', 'caepy_current_user_id',
+            ];
+            keysToRemove.forEach((key) => localStorage.removeItem(key));
+            router.replace('/login');
+            return;
+        }
+
+        setIsAuthed(true);
+    }, [router]);
+
+    if (isAuthed === null) {
+        return null;
     }
 
     return <>{children}</>;

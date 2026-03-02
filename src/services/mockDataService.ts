@@ -13,6 +13,8 @@ interface DoctorProfile {
 const STORAGE_KEY = 'caepy_doctor_profiles';
 const CURRENT_USER_KEY = 'caepy_current_user_id';
 
+import { isBrowser } from '../lib/isBrowser';
+
 class MockDataService {
     private profiles: DoctorProfile[] = [];
 
@@ -21,6 +23,7 @@ class MockDataService {
     }
 
     private loadFromStorage() {
+        if (!isBrowser()) return;
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             this.profiles = JSON.parse(stored);
@@ -31,6 +34,7 @@ class MockDataService {
     }
 
     private saveToStorage() {
+        if (!isBrowser()) return;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.profiles));
     }
 
@@ -141,24 +145,23 @@ class MockDataService {
 
     // Auth Methods
     login(identifier: string): DoctorProfile | null {
-        // Identifier can be email or phone
-        // Remove spaces/dashes for phone check if needed
         const profile = this.profiles.find(p =>
             p.email === identifier || p.phone === identifier
         );
 
         if (profile) {
-            localStorage.setItem(CURRENT_USER_KEY, profile.id);
+            if (isBrowser()) localStorage.setItem(CURRENT_USER_KEY, profile.id);
             return profile;
         }
         return null;
     }
 
     logout() {
-        localStorage.removeItem(CURRENT_USER_KEY);
+        if (isBrowser()) localStorage.removeItem(CURRENT_USER_KEY);
     }
 
     getCurrentUser(): DoctorProfile | null {
+        if (!isBrowser()) return null;
         const id = localStorage.getItem(CURRENT_USER_KEY);
         if (!id) return null;
         return this.getProfile(id) || null;
@@ -178,7 +181,7 @@ class MockDataService {
 
         this.profiles.push(newProfile);
         this.saveToStorage();
-        localStorage.setItem(CURRENT_USER_KEY, newProfile.id);
+        if (isBrowser()) localStorage.setItem(CURRENT_USER_KEY, newProfile.id);
         return newProfile;
     }
 

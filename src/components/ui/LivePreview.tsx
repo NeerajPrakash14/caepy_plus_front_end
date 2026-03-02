@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useRef } from 'react';
 import { MapPin, Clock, Edit2 } from 'lucide-react';
 import styles from './LivePreview.module.css';

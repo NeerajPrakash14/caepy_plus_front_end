@@ -1,3 +1,4 @@
+'use client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, PartyPopper, ArrowRight } from 'lucide-react';
 import styles from './WelcomeDialog.module.css';

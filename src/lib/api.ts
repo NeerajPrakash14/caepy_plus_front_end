@@ -9,7 +9,7 @@ import axios, {
 // ---------------------------------------------------------------------------
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || '/api/v1',
     headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -51,7 +51,7 @@ api.interceptors.request.use(
         config.headers['X-Request-Timestamp'] = new Date().toISOString();
 
         // 3. Client version (helps backend track which frontend version is calling)
-        config.headers['X-Client-Version'] = import.meta.env.VITE_APP_VERSION || '1.0.0';
+        config.headers['X-Client-Version'] = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0';
 
         return config;
     },
@@ -86,8 +86,9 @@ api.interceptors.response.use(
             keysToRemove.forEach((key) => localStorage.removeItem(key));
 
             // Redirect to login (window.location since this is outside React Router)
-            if (window.location.pathname !== '/login') {
-                window.location.href = '/login';
+            const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+            if (window.location.pathname !== `${basePath}/login`) {
+                window.location.href = `${basePath}/login`;
             }
         }
 

@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 

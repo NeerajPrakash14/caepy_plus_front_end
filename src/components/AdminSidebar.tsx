@@ -1,5 +1,7 @@
+'use client';
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
     LayoutGrid, Users,
     ChevronLeft, ChevronRight,
@@ -15,15 +17,13 @@ const AdminSidebar: React.FC = () => {
     const [pendingCount, setPendingCount] = useState(0);
 
     useEffect(() => {
-        // Prefer localStorage role if available (from real API login)
         const storedRole = localStorage.getItem('role');
         const mockUser = getLoggedInAdmin();
 
         if (storedRole) {
-            // Construct a user object with the stored role
             setUser({
                 id: localStorage.getItem('doctor_id') || 'admin_user',
-                name: 'Admin User', // Placeholder or fetch from somewhere else if needed
+                name: 'Admin User',
                 email: localStorage.getItem('mobile_number') || '',
                 role: storedRole as 'admin' | 'operation',
                 joinedDate: new Date().toISOString()
@@ -32,7 +32,6 @@ const AdminSidebar: React.FC = () => {
             setUser(mockUser);
         }
 
-        // Fetch pending dropdown count for badge
         adminService.getDropdownOptions({ status: 'pending', limit: 1 })
             .then(res => setPendingCount(res.pending_count ?? 0))
             .catch(() => { });
@@ -104,12 +103,12 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed, badge }) => {
+    const pathname = usePathname();
+    const isActive = pathname === to;
     return (
-        <NavLink
-            to={to}
-            className={({ isActive }) =>
-                `${styles.navItem} ${isActive ? styles.active : ''}`
-            }
+        <Link
+            href={to}
+            className={`${styles.navItem} ${isActive ? styles.active : ''}`}
             title={isCollapsed ? label : undefined}
         >
             <span className={styles.icon}>{icon}</span>
@@ -125,9 +124,8 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed, badge }
                     </span>
                 )}
             </span>
-        </NavLink>
+        </Link>
     );
 };
 
 export default AdminSidebar;
-
