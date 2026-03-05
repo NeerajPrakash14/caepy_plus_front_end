@@ -846,23 +846,30 @@ const Onboarding = () => {
     const fellowshipFileRef = React.useRef<HTMLInputElement>(null);
     const [fellowshipFiles, setFellowshipFiles] = useState<File[]>([]);
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Size check (e.g., 1MB limit for localStorage safety)
-        if (file.size > 1024 * 1024) {
-            showToast("Image too large. Please select an image under 1MB.", "error");
+        // Size check (e.g., 5MB limit for upload safety)
+        if (file.size > 5 * 1024 * 1024) {
+            showToast("Image too large. Please select an image under 5MB.", "error");
             return;
         }
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result as string;
-            setFormData(prev => ({ ...prev, profileImage: base64String }));
+        const doctorId = localStorage.getItem('doctor_id');
+        if (!doctorId) {
+            showToast("Unable to upload profile photo. Doctor ID not found.", "error");
+            return;
+        }
+
+        try {
+            const url = await doctorService.uploadProfilePhoto(doctorId, file);
+            setFormData(prev => ({ ...prev, profileImage: url }));
             showToast("Profile photo uploaded", "success");
-        };
-        reader.readAsDataURL(file);
+        } catch (err) {
+            console.error('Failed to upload profile photo:', err);
+            showToast("Failed to upload profile photo. Please try again.", "error");
+        }
     };
 
     // Helper for array fields (simple strings)
