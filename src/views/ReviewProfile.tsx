@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '../lib/router';
 import {
     Edit2, Check, User, Activity, Briefcase, Building, MapPin,
     Award, FileText, GraduationCap, ArrowLeft, Target, Coffee, Heart, Lightbulb
@@ -13,7 +13,7 @@ import { doctorService } from '../services/doctorService';
 import { validateSection1 } from '../lib/validation';
 
 const ReviewProfile = () => {
-    const router = useRouter();
+    const router = useAppRouter();
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [stage, setStage] = useState<string>('final');
 

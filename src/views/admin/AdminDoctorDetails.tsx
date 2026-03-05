@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useAppRouter } from '../../lib/router';
 import {
     ArrowLeft, X, ShieldCheck, User, MapPin, Briefcase, Mail, Phone,
     Calendar, FileText, IndianRupee, GraduationCap, Clock,
@@ -13,7 +14,7 @@ import styles from './AdminDashboard.module.css';
 import { adminService, type Doctor, type DoctorFullProfile, type DoctorDetails } from '../../services/adminService';
 
 const AdminDoctorDetails = () => {
-    const router = useRouter();
+    const router = useAppRouter();
     const params = useParams<{ id: string }>();
     const routeId = params.id;
 

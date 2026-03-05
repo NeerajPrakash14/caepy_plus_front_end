@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '../../lib/router';
 import { Search, Users, AlertCircle, CheckCircle, Eye, Upload, X, Download, FileSpreadsheet, Loader2, ShieldCheck } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import { adminService, type Doctor, type CsvValidationResponse, type CsvUploadResponse } from '../../services/adminService';
@@ -379,7 +379,7 @@ const BulkUploadModal = ({ onClose, onComplete }: BulkUploadModalProps) => {
 // ---------------------------------------------------------------------------
 
 const AdminDoctorsList = () => {
-    const router = useRouter();
+    const router = useAppRouter();
     const [searchTerm, setSearchTerm] = useState("");
     const [doctors, setDoctors] = useState<Doctor[]>([]);
     const [loading, setLoading] = useState(true);

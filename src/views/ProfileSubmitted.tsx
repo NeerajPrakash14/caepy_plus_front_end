@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '../lib/router';
 import { Check, Clock, UserCheck, Sparkles, MapPin, Edit2, LayoutGrid, Eye, Send, CheckCircle } from 'lucide-react';
 import styles from './ProfileSubmitted.module.css';
 
 const ProfileSubmitted = () => {
-    const router = useRouter();
+    const router = useAppRouter();
     const [formData, setFormData] = useState<Record<string, any>>({});
 
     useEffect(() => {

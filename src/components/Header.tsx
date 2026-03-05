@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { useAppRouter } from '../lib/router';
 import { Stethoscope, Bell, Settings, User, CheckCircle, FileText, CreditCard, HelpCircle, Phone, LogOut } from 'lucide-react';
 import styles from './Header.module.css';
 import { authService } from '../services/authService';
@@ -13,7 +14,7 @@ import { mockDataService } from '../services/mockDataService';
 
 const Header: React.FC<HeaderProps> = ({ centerTitle }) => {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null); // 'notifications', 'settings', 'profile', or null
-    const router = useRouter();
+    const router = useAppRouter();
     const pathname = usePathname();
 
     const user = mockDataService.getCurrentUser();

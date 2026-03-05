@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '../lib/router';
 import { Mic, Keyboard, Sparkles, Upload, ArrowLeft, MicOff, MapPin, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import Stepper from '../components/ui/Stepper';
 import LivePreview from '../components/ui/LivePreview';
@@ -403,7 +403,7 @@ const PracticeLocationAccordion: React.FC<PracticeLocationAccordionProps> = ({ l
 };
 
 const Onboarding = () => {
-    const router = useRouter();
+    const router = useAppRouter();
     const [navState, setNavState] = useState<Record<string, any>>({});
     useEffect(() => {
         try { const s = JSON.parse(sessionStorage.getItem('nav_state') || '{}'); setNavState(s); sessionStorage.removeItem('nav_state'); } catch { }

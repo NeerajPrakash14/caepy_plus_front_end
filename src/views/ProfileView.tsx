@@ -7,13 +7,13 @@ import {
     ArrowRight, Edit3, Globe, Share2
 } from 'lucide-react';
 
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '../lib/router';
 import styles from './ProfileView.module.css';
 
 import { mockDataService } from '../services/mockDataService';
 
 const ProfileView = () => {
-    const router = useRouter();
+    const router = useAppRouter();
     const currentUser = mockDataService.getCurrentUser();
 
     const [navFormData, setNavFormData] = useState<Record<string, any>>({});

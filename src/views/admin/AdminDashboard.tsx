@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '../../lib/router';
 import {
     Users, AlertCircle, TrendingUp, Clock,
     CheckCircle, Activity, FileText
@@ -10,7 +10,7 @@ import { adminService, type Doctor } from '../../services/adminService';
 import styles from './AdminDashboard.module.css';
 
 const AdminDashboard = () => {
-    const router = useRouter();
+    const router = useAppRouter();
     const [stats, setStats] = useState({
         total: 0,
         pending: 0,
