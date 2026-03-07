@@ -15,6 +15,7 @@ import { mockDataService } from '../services/mockDataService';
 import { doctorService } from '../services/doctorService';
 import { dropdownService } from '../services/dropdownService';
 import { useAssistant } from '../hooks/useAssistant';
+import { isBrowser } from '../lib/isBrowser';
 
 import { validateSection1 } from '../lib/validation';
 import Toast from '../components/ui/Toast';
@@ -444,10 +445,10 @@ const Onboarding = () => {
 
 
     // Welcome Dialog & Guided Tour State
-    const isNewUser = localStorage.getItem('is_new_user') === 'true';
-    const doctorId = localStorage.getItem('doctor_id') || savedUser?.id || 'unknown';
+    const isNewUser = isBrowser() ? localStorage.getItem('is_new_user') === 'true' : false;
+    const doctorId = (isBrowser() ? localStorage.getItem('doctor_id') : null) || savedUser?.id || 'unknown';
     const tourKey = `caepy_tour_completed_${doctorId}`;
-    const hasTourCompleted = localStorage.getItem(tourKey) === 'true';
+    const hasTourCompleted = isBrowser() ? localStorage.getItem(tourKey) === 'true' : false;
 
     // Determine if dialog should be suppressed:
     // If section >= 6 AND profile already submitted/verified, skip dialog entirely
@@ -788,8 +789,8 @@ const Onboarding = () => {
     });
 
     // Determine login method to disable fields
-    const isPhoneLogin = !!savedUser?.phone || !!localStorage.getItem('mobile_number');
-    const isEmailLogin = !!savedUser?.email || !!localStorage.getItem('user_email');
+    const isPhoneLogin = !!savedUser?.phone || !!(isBrowser() ? localStorage.getItem('mobile_number') : null);
+    const isEmailLogin = !!savedUser?.email || !!(isBrowser() ? localStorage.getItem('user_email') : null);
 
     // Auto-save effect
     useEffect(() => {

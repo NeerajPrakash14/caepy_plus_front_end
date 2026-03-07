@@ -14,6 +14,7 @@ export interface OTPVerifyResponse {
     is_new_user: boolean;
     mobile_number: string;
     role: string;
+    full_name?: string | null;
     access_token: string;
     token_type: string;
     expires_in: number;
@@ -65,6 +66,9 @@ export const authService = {
             localStorage.setItem('mobile_number', response.data.mobile_number);
             localStorage.setItem('is_new_user', String(response.data.is_new_user));
             localStorage.setItem('role', response.data.role || 'admin');
+            if (response.data.full_name != null && response.data.full_name !== '') {
+                localStorage.setItem('caepy_admin_full_name', response.data.full_name);
+            }
         }
 
         return response.data;
@@ -109,6 +113,7 @@ export const authService = {
         localStorage.removeItem('is_new_user');
         localStorage.removeItem('role');
         localStorage.removeItem('caepy_current_user_id');
+        localStorage.removeItem('caepy_admin_full_name');
 
         // Optional: clear anything else except keys we want to persist
         const keysToKeep = ['caepy_doctor_profiles'];

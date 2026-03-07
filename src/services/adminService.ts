@@ -4,6 +4,7 @@ export interface AdminUserResponse {
     id: number;
     phone: string;
     email: string | null;
+    full_name?: string | null;
     role: 'admin' | 'operation';
     is_active: boolean;
     doctor_id: number | null;
@@ -23,6 +24,7 @@ export interface UserListResponse {
 export interface CreateUserPayload {
     phone: string;
     email: string | null;
+    full_name?: string | null;
     role: 'admin' | 'operation';
     is_active: boolean;
     doctor_id: number | null;
@@ -30,6 +32,7 @@ export interface CreateUserPayload {
 
 export interface UpdateUserPayload {
     email?: string | null;
+    full_name?: string | null;
     role?: 'admin' | 'operation' | null;
     is_active?: boolean | null;
     doctor_id?: number | null;
@@ -274,6 +277,7 @@ const STATIC_USERS: AdminUserResponse[] = [
         id: 9991,
         phone: '+919800000001',
         email: 'admin.demo@caepy.com',
+        full_name: 'Admin Demo',
         role: 'admin',
         is_active: true,
         doctor_id: null,
@@ -285,6 +289,7 @@ const STATIC_USERS: AdminUserResponse[] = [
         id: 9992,
         phone: '+919800000002',
         email: 'staff.demo@caepy.com',
+        full_name: 'Staff Demo',
         role: 'operation',
         is_active: true,
         doctor_id: null,
@@ -296,6 +301,7 @@ const STATIC_USERS: AdminUserResponse[] = [
         id: 9993,
         phone: '+919800000003',
         email: 'dr.john.smith@demo.com',
+        full_name: 'Dr. John Smith',
         role: 'operation',
         is_active: false,
         doctor_id: 101,
