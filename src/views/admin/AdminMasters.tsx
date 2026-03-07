@@ -590,7 +590,6 @@ const AdminMasters = () => {
                                 <th style={{ textAlign: 'left', padding: '0.75rem', color: '#6B7280', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Value</th>
                                 <th style={{ textAlign: 'left', padding: '0.75rem', color: '#6B7280', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Field</th>
                                 <th style={{ textAlign: 'left', padding: '0.75rem', color: '#6B7280', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Status</th>
-                                <th style={{ textAlign: 'left', padding: '0.75rem', color: '#6B7280', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Submitted By</th>
                                 <th style={{ textAlign: 'left', padding: '0.75rem', color: '#6B7280', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Date</th>
                                 <th style={{ textAlign: 'right', padding: '0.75rem', color: '#6B7280', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', width: '140px' }}>Actions</th>
                             </tr>
@@ -630,7 +629,6 @@ const AdminMasters = () => {
                                                 {opt.status}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '0.75rem', fontSize: '0.8125rem', color: '#6B7280' }}>{opt.submitted_by || '—'}</td>
                                         <td style={{ padding: '0.75rem', fontSize: '0.8125rem', color: '#6B7280' }}>{formatDate(opt.created_at)}</td>
                                         <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.25rem' }}>
