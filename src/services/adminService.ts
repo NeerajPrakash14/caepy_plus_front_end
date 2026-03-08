@@ -362,6 +362,53 @@ export interface DropdownBulkReviewResponse {
 let STATIC_DOCTORS: Doctor[] = [];
 
 // ---------------------------------------------------------------------------
+// Lead Doctor interfaces (matching backend LeadDoctorResponse)
+// ---------------------------------------------------------------------------
+
+export interface LeadDoctor {
+    id: number;
+    city: string | null;
+    speciality: string | null;
+    doctor_name: string | null;
+    qualification: string | null;
+    specialization: string | null;
+    experience: string | null;
+    fee: string | null;
+    location: string | null;
+    hospital_name: string | null;
+    hospital_address: string | null;
+    awards: string | null;
+    memberships: string | null;
+    registrations: string | null;
+    services: string | null;
+    profile_url: string | null;
+    created_at: string | null;
+}
+
+export interface LeadDoctorFilters {
+    city?: string;
+    speciality?: string;
+    specialization?: string;
+    doctor_name?: string;
+    location?: string;
+    hospital_name?: string;
+}
+
+export interface LeadDoctorPagination {
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+    has_next: boolean;
+    has_previous: boolean;
+}
+
+export interface LeadDoctorListResponse {
+    data: LeadDoctor[];
+    pagination: LeadDoctorPagination;
+}
+
+// ---------------------------------------------------------------------------
 // Admin Service
 // ---------------------------------------------------------------------------
 
@@ -574,5 +621,35 @@ export const adminService = {
     bulkReject: async (payload: DropdownBulkReviewRequest): Promise<DropdownBulkReviewResponse> => {
         const response = await api.post('/admin/dropdowns/bulk-reject', payload);
         return parseResponse<DropdownBulkReviewResponse>(response);
-    }
+    },
+
+    // -----------------------------------------------------------------------
+    // Lead Doctors
+    // -----------------------------------------------------------------------
+
+    /** List lead doctors with pagination and optional filters. */
+    getLeadDoctors: async (
+        page = 1,
+        pageSize = 50,
+        filters?: LeadDoctorFilters
+    ): Promise<LeadDoctorListResponse> => {
+        const params: Record<string, any> = { page, page_size: pageSize };
+        if (filters) {
+            if (filters.city) params.city = filters.city;
+            if (filters.speciality) params.speciality = filters.speciality;
+            if (filters.specialization) params.specialization = filters.specialization;
+            if (filters.doctor_name) params.doctor_name = filters.doctor_name;
+            if (filters.location) params.location = filters.location;
+            if (filters.hospital_name) params.hospital_name = filters.hospital_name;
+        }
+        const response = await api.get('/lead-doctors', { params });
+        // PaginatedResponse has { success, data: [...], pagination: {...}, meta }
+        // parseResponse would extract only .data (the array), losing pagination.
+        // Access the raw body directly instead.
+        const body = response.data;
+        return {
+            data: body.data ?? [],
+            pagination: body.pagination,
+        };
+    },
 };

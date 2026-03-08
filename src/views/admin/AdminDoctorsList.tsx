@@ -513,7 +513,7 @@ const AdminDoctorsList = () => {
                                                 <button
                                                     className={`${styles.actionBtn} ${styles.viewBtn}`}
                                                     title="View Details"
-                                                    onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ doctor: doc })); router.push(`/admin/doctor/${doc.id}`); }}
+                                                    onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ doctor: doc })); router.push(`/admin/dashboard/doctor/${doc.id}`); }}
                                                 >
                                                     <Eye size={18} />
                                                 </button>

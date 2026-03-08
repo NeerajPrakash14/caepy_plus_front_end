@@ -184,7 +184,7 @@ The Caepy Team`,
         <>
             <div className={styles.container}>
                 <button
-                    onClick={() => router.push('/admin/doctors')}
+                    onClick={() => router.push('/admin/dashboard/doctors')}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6B7280', marginBottom: '1.5rem', fontSize: '0.875rem' }}
                 >
                     <ArrowLeft size={18} /> Back to Doctors List

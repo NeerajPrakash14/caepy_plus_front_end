@@ -68,7 +68,7 @@ const AdminDashboard = () => {
                         <p>Total Onboarded</p>
                     </div>
                 </div>
-                <div className={styles.statCard} style={{ cursor: 'pointer' }} onClick={() => router.push('/admin/doctors')}>
+                <div className={styles.statCard} style={{ cursor: 'pointer' }} onClick={() => router.push('/admin/dashboard/doctors')}>
                     <div className={styles.statIcon} style={{ background: '#F59E0B' }}>
                         <AlertCircle size={24} />
                     </div>
@@ -126,7 +126,7 @@ const AdminDashboard = () => {
                     <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                         <div className={styles.flexBetweenCenter} style={{ marginBottom: '1rem' }}>
                             <h3 className={styles.sectionTitle}>Needs Attention</h3>
-                            <button onClick={() => router.push('/admin/doctors')} style={{ color: '#3B82F6', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}>View All</button>
+                            <button onClick={() => router.push('/admin/dashboard/doctors')} style={{ color: '#3B82F6', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}>View All</button>
                         </div>
 
                         {loading ? (
@@ -149,7 +149,7 @@ const AdminDashboard = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    <button onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ doctor: doc })); router.push(`/admin/doctor/${doc.id}`); }} style={{ padding: '0.5rem 1rem', background: '#EFF6FF', color: '#1D4ED8', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer' }}>
+                                    <button onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ doctor: doc })); router.push(`/admin/dashboard/doctor/${doc.id}`); }} style={{ padding: '0.5rem 1rem', background: '#EFF6FF', color: '#1D4ED8', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer' }}>
                                         Review
                                     </button>
                                 </div>
