@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppRouter } from '../../lib/router';
-import { Search, Users, AlertCircle, CheckCircle, Eye, Upload, X, Download, FileSpreadsheet, Loader2, ShieldCheck } from 'lucide-react';
+import { Search, Users, AlertCircle, CheckCircle, Eye, Upload, X, Download, FileSpreadsheet, Loader2, ShieldCheck, UserPlus } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import { adminService, type Doctor, type CsvValidationResponse, type CsvUploadResponse } from '../../services/adminService';
 
@@ -404,27 +404,15 @@ const AdminDoctorsList = () => {
         }
     };
 
-    const handleVerify = async (id: number) => {
-        if (window.confirm("Are you sure you want to verify this doctor?")) {
+    const handleSyncLinqMD = async (id: number) => {
+        if (window.confirm("Are you sure you want to create a profile in LinQMD for this doctor?")) {
             try {
-                await adminService.verifyDoctor(id);
-                fetchDoctors(); // Refresh list
+                await adminService.syncLinqMDProfile(id);
+                alert("Profile created successfully");
+                fetchDoctors(); // Refresh list to reflect state changes if any
             } catch (error) {
-                console.error("Verification failed", error);
-                alert("Failed to verify doctor");
-            }
-        }
-    };
-
-    const handleReject = async (id: number) => {
-        const reason = window.prompt("Please provide a reason for rejection:");
-        if (reason !== null) { // User didn't cancel
-            try {
-                await adminService.rejectDoctor(id, { reason });
-                fetchDoctors(); // Refresh list
-            } catch (error) {
-                console.error("Rejection failed", error);
-                alert("Failed to reject doctor");
+                console.error("LinQMD sync failed", error);
+                alert("Failed to create profile in LinQMD");
             }
         }
     };
@@ -530,26 +518,14 @@ const AdminDoctorsList = () => {
                                                     <Eye size={18} />
                                                 </button>
 
-                                                {(status === 'submitted' || status === 'SUBMITTED' || status === 'pending' || status === 'PENDING') && (
-                                                    <>
-                                                        <button
-                                                            className={`${styles.actionBtn}`}
-                                                            style={{ color: '#10B981' }}
-                                                            title="Verify"
-                                                            onClick={() => handleVerify(doc.id)}
-                                                        >
-                                                            <CheckCircle size={18} />
-                                                        </button>
-                                                        <button
-                                                            className={`${styles.actionBtn}`}
-                                                            style={{ color: '#EF4444' }}
-                                                            title="Reject"
-                                                            onClick={() => handleReject(doc.id)}
-                                                        >
-                                                            <AlertCircle size={18} />
-                                                        </button>
-                                                    </>
-                                                )}
+                                                <button
+                                                    className={`${styles.actionBtn}`}
+                                                    style={{ color: '#3B82F6' }}
+                                                    title="Create Profile in LinQMD"
+                                                    onClick={() => handleSyncLinqMD(doc.id)}
+                                                >
+                                                    <UserPlus size={18} />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>

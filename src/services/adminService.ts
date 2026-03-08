@@ -272,44 +272,7 @@ export interface DoctorFullProfile {
 // Static Dummy Data for Admin Console
 // ---------------------------------------------------------------------------
 
-const STATIC_USERS: AdminUserResponse[] = [
-    {
-        id: 9991,
-        phone: '+919800000001',
-        email: 'admin.demo@caepy.com',
-        full_name: 'Admin Demo',
-        role: 'admin',
-        is_active: true,
-        doctor_id: null,
-        created_at: '2026-01-01T10:00:00Z',
-        updated_at: null,
-        last_login_at: '2026-02-18T15:30:00Z'
-    },
-    {
-        id: 9992,
-        phone: '+919800000002',
-        email: 'staff.demo@caepy.com',
-        full_name: 'Staff Demo',
-        role: 'operation',
-        is_active: true,
-        doctor_id: null,
-        created_at: '2026-01-05T12:00:00Z',
-        updated_at: null,
-        last_login_at: '2026-02-18T14:45:00Z'
-    },
-    {
-        id: 9993,
-        phone: '+919800000003',
-        email: 'dr.john.smith@demo.com',
-        full_name: 'Dr. John Smith',
-        role: 'operation',
-        is_active: false,
-        doctor_id: 101,
-        created_at: '2026-01-10T09:00:00Z',
-        updated_at: null,
-        last_login_at: null
-    }
-];
+const STATIC_USERS: AdminUserResponse[] = [];
 
 // ---------------------------------------------------------------------------
 // Bulk Upload API Response Types
@@ -396,68 +359,7 @@ export interface DropdownBulkReviewResponse {
 }
 
 
-let STATIC_DOCTORS: Doctor[] = [
-    {
-        id: 8881,
-        first_name: 'Prem',
-        last_name: 'Ranjan',
-        full_name: 'Dr. Prem Ranjan',
-        email: 'prem.ranjan@demo.com',
-        phone: '+918888811111',
-        specialty: 'Cardiology',
-        primary_practice_location: 'Mumbai, MH',
-        onboarding_status: 'verified',
-        role: 'doctor',
-        created_at: '2026-01-15T08:30:00Z',
-        updated_at: null,
-        medical_registration_number: 'MH-2019-34521',
-        qualifications: ['MBBS', 'MD (Cardiology)', 'DM'],
-        years_of_experience: 12,
-        consultation_fee: '₹1,500',
-        languages: ['English', 'Hindi', 'Marathi'],
-        about_me: 'Experienced cardiologist specializing in interventional procedures and preventive cardiology. Previously at Kokilaben Hospital.',
-    },
-    {
-        id: 8882,
-        first_name: 'Hemanth',
-        last_name: 'Kumar',
-        full_name: 'Dr. Hemanth Kumar',
-        email: 'hemanth.kumar@demo.com',
-        phone: '+918888822222',
-        specialty: 'Dermatology',
-        primary_practice_location: 'Bangalore, KA',
-        onboarding_status: 'submitted',
-        role: 'doctor',
-        created_at: '2026-01-20T11:45:00Z',
-        updated_at: null,
-        medical_registration_number: 'KA-2021-18743',
-        qualifications: ['MBBS', 'MD (Dermatology)'],
-        years_of_experience: 6,
-        consultation_fee: '₹800',
-        languages: ['English', 'Kannada', 'Telugu'],
-        about_me: 'Dermatologist with focus on cosmetic procedures and skin cancer screening.',
-    },
-    {
-        id: 8883,
-        first_name: 'Saranya',
-        last_name: 'Prabhu',
-        full_name: 'Dr. Saranya Prabhu',
-        email: 'saranya.prabhu@demo.com',
-        phone: '+918888833333',
-        specialty: 'Pediatrics',
-        primary_practice_location: 'Delhi NCR',
-        onboarding_status: 'pending',
-        role: 'doctor',
-        created_at: '2026-01-25T14:20:00Z',
-        updated_at: null,
-        medical_registration_number: 'DL-2020-55612',
-        qualifications: ['MBBS', 'DCH', 'DNB (Pediatrics)'],
-        years_of_experience: 8,
-        consultation_fee: '₹1,000',
-        languages: ['English', 'Hindi', 'Tamil'],
-        about_me: 'Pediatrician specializing in neonatal care and childhood development disorders.',
-    }
-];
+let STATIC_DOCTORS: Doctor[] = [];
 
 // ---------------------------------------------------------------------------
 // Admin Service
@@ -555,6 +457,11 @@ export const adminService = {
 
     rejectDoctor: async (doctorId: number, payload?: { reason?: string, send_email?: boolean, email_subject?: string, email_body?: string }) => {
         const response = await api.post(`/onboarding/reject/${doctorId}`, payload || {});
+        return response.data;
+    },
+
+    syncLinqMDProfile: async (doctorId: number) => {
+        const response = await api.get(`/onboarding-admin/linqmd-sync/${doctorId}`);
         return response.data;
     },
 

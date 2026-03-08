@@ -215,11 +215,6 @@ The Caepy Team`,
                             <p className={styles.subtitle} style={{ margin: 0 }}>{specialty} • {locationStr}</p>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <span className={`${styles.statusBadge} ${isVerified ? styles.statusVerified : isRejected ? styles.statusRejected : styles.statusPending}`} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
-                            {status}
-                        </span>
-                    </div>
                 </div>
 
                 {/* Registration Number - Highlighted Card */}
@@ -426,7 +421,6 @@ The Caepy Team`,
                                         details?.years_of_experience ? `${details.years_of_experience} yrs` :
                                             doctor?.years_of_experience ? `${doctor.years_of_experience} yrs` : 'N/A'
                                 } />
-                                <SummaryItem label="Status" value={status} badge isVerified={isVerified} isRejected={isRejected} />
                             </div>
                         </div>
 

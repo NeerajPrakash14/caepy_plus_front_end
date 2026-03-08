@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppRouter } from '../lib/router';
 import {
     Edit2, Check, User, Activity, Briefcase, Building, MapPin,
-    Award, FileText, GraduationCap, ArrowLeft, Target, Coffee, Heart, Lightbulb
+    Award, FileText, GraduationCap, Target, Coffee, Heart, Lightbulb
 } from 'lucide-react';
 import Stepper from '../components/ui/Stepper';
 import Toast from '../components/ui/Toast';
@@ -258,11 +258,6 @@ const ReviewProfile = () => {
                     )}
                 </div>
 
-                <div className={styles.actions}>
-                    <button className={styles.backButton} onClick={() => { sessionStorage.setItem('nav_state', JSON.stringify({ formData, step: stage === 'intermediate' ? 3 : 6 })); router.push('/doctor/onboarding'); }}>
-                        <ArrowLeft size={16} /> Go Back to Edit
-                    </button>
-                </div>
             </div>
 
             <Toast
