@@ -5,6 +5,7 @@ import {
     Users, Shield, Plus, CheckCircle, Edit, XCircle, Smartphone, Mail, Save
 } from 'lucide-react';
 import { adminService, type AdminUserResponse, type CreateUserPayload, type UpdateUserPayload } from '../../services/adminService';
+import styles from './AdminDashboard.module.css';
 
 const AdminUsers = () => {
     const [users, setUsers] = useState<AdminUserResponse[]>([]);
@@ -120,7 +121,7 @@ const AdminUsers = () => {
 
     return (
         <div style={{ padding: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <div className={styles.flexBetweenCenter} style={{ marginBottom: '2rem' }}>
                 <div>
                     <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827' }}>User Management</h1>
                     <p style={{ color: '#6B7280', marginTop: '0.25rem' }}>Manage access roles and users for the Admin Console.</p>

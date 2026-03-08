@@ -56,7 +56,7 @@ const Header: React.FC<HeaderProps> = ({ centerTitle }) => {
             </div>
 
             {centerTitle && (
-                <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontWeight: 600, fontSize: '1.125rem', color: '#111827' }}>
+                <div className={styles.centerTitle}>
                     {centerTitle}
                 </div>
             )}

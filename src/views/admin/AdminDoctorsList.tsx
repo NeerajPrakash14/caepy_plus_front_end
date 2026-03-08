@@ -107,7 +107,7 @@ const BulkUploadModal = ({ onClose, onComplete }: BulkUploadModalProps) => {
         <div className={styles.modalOverlay} onClick={isProcessing ? undefined : onClose}>
             <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
                 {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div className={styles.flexBetweenCenter} style={{ marginBottom: '1.5rem' }}>
                     <div>
                         <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#111827' }}>
                             Bulk Upload Doctors

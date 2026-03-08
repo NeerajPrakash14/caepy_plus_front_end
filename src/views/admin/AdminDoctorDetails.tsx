@@ -197,7 +197,7 @@ The Caepy Team`,
                 )}
 
                 {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+                <div className={styles.flexBetweenStart} style={{ marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                         {details?.profile_photo ? (
                             <img
@@ -223,8 +223,7 @@ The Caepy Team`,
                         background: regNumber ? 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)' : '#FEF3C7',
                         border: regNumber ? '2px solid #818CF8' : '2px solid #F59E0B',
                         borderRadius: '1rem', padding: '1.5rem 2rem', marginBottom: '2rem',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    }}>
+                    }} className={styles.regCard}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             <div style={{
                                 width: '48px', height: '48px', borderRadius: '12px',
@@ -264,13 +263,13 @@ The Caepy Team`,
                     </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+                <div className={styles.grid2Cols1Fr}>
                     {/* Main Profile Info */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
                         {/* Basic Information */}
                         <SectionCard title="Basic Information">
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className={styles.grid2ColsEqual}>
                                 <DetailRow icon={<User size={18} />} label="Full Name" value={doctorName} />
                                 <DetailRow icon={<Briefcase size={18} />} label="Specialty" value={specialty} />
                                 <DetailRow icon={<Mail size={18} />} label="Email" value={email || 'N/A'} />
@@ -286,7 +285,7 @@ The Caepy Team`,
                         {/* Credentials & Trust Markers (Block 2) */}
                         {details && (
                             <SectionCard title="Credentials & Trust Markers" icon={<GraduationCap size={18} />}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <div className={styles.grid2ColsEqual}>
                                     <DetailRow icon={<Calendar size={18} />} label="Year of MBBS" value={details.year_of_mbbs?.toString() || 'N/A'} />
                                     <DetailRow icon={<Calendar size={18} />} label="Year of Specialisation" value={details.year_of_specialisation?.toString() || 'N/A'} />
                                     <DetailRow icon={<Clock size={18} />} label="Years of Clinical Experience" value={details.years_of_clinical_experience?.toString() || details.years_of_experience?.toString() || doctor?.years_of_experience?.toString() || 'N/A'} />
@@ -350,7 +349,7 @@ The Caepy Team`,
                         {/* Media / Documents */}
                         {media.length > 0 && (
                             <SectionCard title="Media & Documents" icon={<Image size={18} />}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                                <div className={styles.gridAutoFill}>
                                     {media.map(m => (
                                         <div key={m.media_id} style={{ background: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
                                             <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827', margin: '0 0 0.25rem 0', wordBreak: 'break-all' }}>{m.file_name}</p>
@@ -641,7 +640,7 @@ const TextBlock = ({ label, value }: { label: string; value: string }) => (
 const SummaryItem = ({ label, value, highlight, badge, isVerified, isRejected }: {
     label: string; value: string; highlight?: boolean; badge?: boolean; isVerified?: boolean; isRejected?: boolean;
 }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid #F9FAFB' }}>
+    <div className={styles.flexBetweenCenter} style={{ padding: '0.5rem 0', borderBottom: '1px solid #F9FAFB' }}>
         <span style={{ fontSize: '0.8125rem', color: '#6B7280' }}>{label}</span>
         {badge ? (
             <span style={{
