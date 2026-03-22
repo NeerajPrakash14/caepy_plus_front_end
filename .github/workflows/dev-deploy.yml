@@ -52,17 +52,19 @@ jobs:
       run: |
         S3_BUCKET="${{ secrets.PORTALS_S3_BUCKET }}"
         S3_PREFIX="${{ secrets.CAEPY_PORTAL_S3_PREFIX || 'portal/caepy' }}"
+        BASE_PATH="${{ secrets.NEXT_PUBLIC_BASE_PATH || '/portal/caepy' }}"
+        SRC_DIR="out/${BASE_PATH#/}"
         if [ -z "$S3_BUCKET" ]; then
           echo "::error::PORTALS_S3_BUCKET secret is not set. Run Terraform apply with enable_portals_cloudfront=true and sync GitHub secrets."
           exit 1
         fi
-        echo "Syncing to s3://$S3_BUCKET/$S3_PREFIX/"
-        aws s3 sync out/ s3://$S3_BUCKET/$S3_PREFIX/ \
+        echo "Syncing $SRC_DIR/ to s3://$S3_BUCKET/$S3_PREFIX/"
+        aws s3 sync "$SRC_DIR"/ s3://$S3_BUCKET/$S3_PREFIX/ \
           --delete \
           --cache-control "public, max-age=31536000, immutable" \
           --exclude "*.html" \
           --exclude "*.json"
-        aws s3 sync out/ s3://$S3_BUCKET/$S3_PREFIX/ \
+        aws s3 sync "$SRC_DIR"/ s3://$S3_BUCKET/$S3_PREFIX/ \
           --delete \
           --cache-control "public, max-age=0, must-revalidate" \
           --exclude "*" \
