@@ -1,4 +1,4 @@
-name: Deploy Caepy Plus Frontend to ECS (Dev)
+name: Deploy Caepy Plus Frontend to S3 (Dev)
 
 on:
   push:
@@ -8,20 +8,38 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  ECR_REPOSITORY: linqmd-dev-caepyplus-frontend
-  ECS_SERVICE: linqmd-dev-caepyplus-frontend
-  ECS_CLUSTER: linqmd-dev-ecs
-  ECS_TASK_DEFINITION: linqmd-dev-caepyplus-frontend
 
 jobs:
   deploy:
-    name: Deploy
+    name: Build and Deploy to S3
     runs-on: ubuntu-latest
     environment: production
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build static export
+      env:
+        NEXT_PUBLIC_BASE_PATH: ${{ secrets.NEXT_PUBLIC_BASE_PATH || '/portal/caepy' }}
+        NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://dev1.linqmd.com/caepy/api/v1' }}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+      run: npm run build
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -30,72 +48,35 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-        NEXT_PUBLIC_BASE_PATH: /portal/caepy
-        NEXT_PUBLIC_API_URL: https://dev1.linqmd.com/caepy/api/v1
-        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
-        NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
-        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
-        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-        NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+    - name: Sync to S3
       run: |
-        echo "🔨 Building Caepy Plus Frontend with build args:"
-        echo "  NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH"
-        echo "  NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL"
-        echo "  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
-        echo "  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"
-        echo "  NEXT_PUBLIC_FIREBASE_PROJECT_ID=$NEXT_PUBLIC_FIREBASE_PROJECT_ID"
-        echo "  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"
-        echo "  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"
-        echo "  NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID"
+        S3_BUCKET="${{ secrets.PORTALS_S3_BUCKET }}"
+        S3_PREFIX="${{ secrets.CAEPY_PORTAL_S3_PREFIX || 'portal/caepy' }}"
+        if [ -z "$S3_BUCKET" ]; then
+          echo "::error::PORTALS_S3_BUCKET secret is not set. Run Terraform apply with enable_portals_cloudfront=true and sync GitHub secrets."
+          exit 1
+        fi
+        echo "Syncing to s3://$S3_BUCKET/$S3_PREFIX/"
+        aws s3 sync out/ s3://$S3_BUCKET/$S3_PREFIX/ \
+          --delete \
+          --cache-control "public, max-age=31536000, immutable" \
+          --exclude "*.html" \
+          --exclude "*.json"
+        aws s3 sync out/ s3://$S3_BUCKET/$S3_PREFIX/ \
+          --delete \
+          --cache-control "public, max-age=0, must-revalidate" \
+          --exclude "*" \
+          --include "*.html" \
+          --include "*.json"
 
-        docker build \
-          --build-arg BUILD_SHA="${{ github.sha }}" \
-          --build-arg NEXT_PUBLIC_BASE_PATH="$NEXT_PUBLIC_BASE_PATH" \
-          --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
-          --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY" \
-          --build-arg NEXT_PUBLIC_FIREBASE_API_KEY="$NEXT_PUBLIC_FIREBASE_API_KEY" \
-          --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN" \
-          --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="$NEXT_PUBLIC_FIREBASE_PROJECT_ID" \
-          --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET" \
-          --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID" \
-          --build-arg NEXT_PUBLIC_FIREBASE_APP_ID="$NEXT_PUBLIC_FIREBASE_APP_ID" \
-          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
-    - name: Download task definition
+    - name: Invalidate CloudFront
+      if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
       run: |
-        aws ecs describe-task-definition \
-          --task-definition ${{ env.ECS_TASK_DEFINITION }} \
-          --query taskDefinition > task-definition.json
-
-    - name: Fill in the new image ID in the Amazon ECS task definition
-      id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: task-definition.json
-        container-name: caepyplus-frontend
-        image: ${{ steps.build-image.outputs.image }}
-
-    - name: Deploy Amazon ECS task definition
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ env.ECS_SERVICE }}
-        cluster: ${{ env.ECS_CLUSTER }}
-        wait-for-service-stability: true
-
+        DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
+        PREFIX="${{ secrets.CAEPY_PORTAL_S3_PREFIX || 'portal/caepy' }}"
+        if [ -n "$DIST_ID" ]; then
+          echo "Invalidating CloudFront cache for /$PREFIX/*"
+          aws cloudfront create-invalidation \
+            --distribution-id "$DIST_ID" \
+            --paths "/$PREFIX/*"
+        fi
