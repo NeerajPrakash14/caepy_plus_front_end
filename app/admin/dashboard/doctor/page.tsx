@@ -1,10 +1,5 @@
-import { Suspense } from 'react';
-import AdminDoctorDetails from '@/views/admin/AdminDoctorDetails';
+import { redirect } from 'next/navigation';
 
-export default function AdminDoctorDetailsPage() {
-  return (
-    <Suspense fallback={<div className="p-4">Loading...</div>}>
-      <AdminDoctorDetails />
-    </Suspense>
-  );
+export default function AdminDoctorPage() {
+  redirect('/admin/dashboard/doctors');
 }
