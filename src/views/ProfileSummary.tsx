@@ -7,12 +7,23 @@ import {
     GraduationCap, ShieldCheck, Heart, Lightbulb, Coffee, Target, Sparkles
 } from 'lucide-react';
 import { mockDataService } from '../services/mockDataService';
+import { useResolvedProfilePhotoDisplayUrl } from '../hooks/useResolvedProfilePhotoDisplayUrl';
 import styles from './ProfileSummary.module.css';
 
 const ProfileSummary = () => {
     const router = useAppRouter();
     const currentUser = mockDataService.getCurrentUser();
     const formData = currentUser?.data || {};
+    const rawProfileImage =
+        typeof (formData as { profileImage?: string }).profileImage === 'string'
+            ? (formData as { profileImage: string }).profileImage
+            : '';
+    const skipSignedForLocalPreview = /^(data:|blob:)/i.test(rawProfileImage);
+    const { url: resolvedProfilePhotoUrl } = useResolvedProfilePhotoDisplayUrl(
+        rawProfileImage || undefined,
+        undefined,
+        skipSignedForLocalPreview,
+    );
 
     // Helper to safely access data
     const getVal = (key: string) => formData[key] || 'Not provided';
@@ -55,8 +66,13 @@ const ProfileSummary = () => {
                 {/* Header Section */}
                 <div className={styles.profileHeader}>
                     <div className={styles.avatarWrapper}>
-                        {formData.profileImage ? (
-                            <img src={formData.profileImage} alt="Profile" className={styles.avatar} />
+                        {resolvedProfilePhotoUrl ? (
+                            <img
+                                src={resolvedProfilePhotoUrl}
+                                alt="Profile"
+                                className={styles.avatar}
+                                referrerPolicy="no-referrer"
+                            />
                         ) : (
                             <div className={styles.avatarPlaceholder}>
                                 <User size={80} strokeWidth={1} />

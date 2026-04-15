@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { MapPin, Clock, Edit2 } from 'lucide-react';
 import styles from './LivePreview.module.css';
+import { useResolvedProfilePhotoDisplayUrl } from '../../hooks/useResolvedProfilePhotoDisplayUrl';
 
 // Match the full FormData structure from Onboarding.tsx
 interface LivePreviewProps {
@@ -63,6 +64,14 @@ interface FieldConfig {
 const LivePreview: React.FC<LivePreviewProps> = ({ data, focusedField, onEditField }) => {
     const scrollableRef = useRef<HTMLDivElement>(null);
     const fieldRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+    const rawProfileImage = typeof data.profileImage === 'string' ? data.profileImage : '';
+    const skipSignedForLocalPreview = /^(data:|blob:)/i.test(rawProfileImage);
+    const { url: previewProfilePhotoUrl } = useResolvedProfilePhotoDisplayUrl(
+        rawProfileImage || undefined,
+        undefined,
+        skipSignedForLocalPreview,
+    );
 
     const formatArray = (val: string | string[]) => Array.isArray(val) ? val.join(', ') : val;
 
@@ -163,8 +172,14 @@ const LivePreview: React.FC<LivePreviewProps> = ({ data, focusedField, onEditFie
                 <div className={styles.profileCard}>
                     <div className={styles.profileHeader}>
                         <div className={styles.avatarPlaceholder}>
-                            {data.profileImage ? (
-                                <img src={data.profileImage} alt="Profile" className={styles.avatar} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                            {previewProfilePhotoUrl ? (
+                                <img
+                                    src={previewProfilePhotoUrl}
+                                    alt="Profile"
+                                    className={styles.avatar}
+                                    referrerPolicy="no-referrer"
+                                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                                />
                             ) : (
                                 data.fullName ? data.fullName.charAt(0).toUpperCase() : '?'
                             )}

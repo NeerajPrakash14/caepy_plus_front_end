@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAppRouter } from '../lib/router';
-import { Stethoscope, Bell, Settings, User, CheckCircle, FileText, CreditCard, HelpCircle, Phone, LogOut } from 'lucide-react';
+import { Bell, Settings, User, CheckCircle, FileText, CreditCard, HelpCircle, Phone, LogOut } from 'lucide-react';
 import styles from './Header.module.css';
 import { authService } from '../services/authService';
 
@@ -13,6 +13,7 @@ interface HeaderProps {
 import { getLoggedInAdmin, logoutAdmin } from '../lib/adminAuth';
 import { mockDataService } from '../services/mockDataService';
 import { isBrowser } from '../lib/isBrowser';
+import { publicAssetUrl } from '../config/basePath';
 
 const Header: React.FC<HeaderProps> = ({ centerTitle }) => {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null); // 'notifications', 'settings', 'profile', or null
@@ -48,9 +49,13 @@ const Header: React.FC<HeaderProps> = ({ centerTitle }) => {
     return (
         <header className={styles.header}>
             <div className={styles.leftSection}>
-                <Stethoscope className={styles.logoIcon} strokeWidth={2.5} />
+                <img
+                    src={publicAssetUrl('/LinQMD.svg')}
+                    alt="Caepy logo"
+                    className={styles.logoIcon}
+                />
                 <div className={styles.logoText}>
-                    <span className={styles.brandName}>CAEPY</span>
+                    <span className={styles.brandName}>Caepy</span>
                     <span className={styles.tagline}>Practice Smarter</span>
                 </div>
             </div>

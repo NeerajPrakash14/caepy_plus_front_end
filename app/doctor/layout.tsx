@@ -58,14 +58,8 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
               <div className={profileStyles.supportChannels}>
                 <div className={profileStyles.supportChannel}>
                   <p className={profileStyles.supportLabel}>Email</p>
-                  <a className={profileStyles.supportLink} href="mailto:support@caepy.com">
-                    support@caepy.com
-                  </a>
-                </div>
-                <div className={profileStyles.supportChannel}>
-                  <p className={profileStyles.supportLabel}>Phone</p>
-                  <a className={profileStyles.supportLink} href="tel:+911234567890">
-                    +91 123 456 7890
+                  <a className={profileStyles.supportLink} href="mailto:support@linqmd.com">
+                    support@linqmd.com
                   </a>
                 </div>
               </div>

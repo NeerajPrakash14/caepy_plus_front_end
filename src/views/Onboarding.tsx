@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useAppRouter } from '../lib/router';
-import { Mic, Sparkles, ArrowLeft, MicOff } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Stepper from '../components/ui/Stepper';
 import LivePreview from '../components/ui/LivePreview';
 import WelcomeDialog from '../components/ui/WelcomeDialog';
@@ -15,14 +15,11 @@ import type { DropdownOption } from '../components/ui/CreatableDropdown';
 import { mockDataService } from '../services/mockDataService';
 import { doctorService } from '../services/doctorService';
 import { dropdownService } from '../services/dropdownService';
-import { useAssistant } from '../hooks/useAssistant';
 import { isBrowser } from '../lib/isBrowser';
 
 import { validateSection1 } from '../lib/validation';
 import { calculateProfileProgress } from '../lib/profileProgress';
 import Toast from '../components/ui/Toast';
-import { voiceService } from '../services/voiceService';
-import { ONBOARDING_VOICE_CONTEXT } from '../lib/voiceContext';
 
 import type { OnboardingFormData } from './onboarding-steps/types';
 import { FIELD_NAME_MAP } from './onboarding-steps/types';
@@ -160,60 +157,6 @@ const Onboarding = () => {
     const handleTourSkip = () => {
         setShowTour(false);
         localStorage.setItem(tourKey, 'true');
-    };
-
-    // AI Assistant Integration
-    const { isSpeaking, isListening, speak, listen, stop } = useAssistant();
-    const [sessionId, setSessionId] = useState<string | null>(null);
-
-    const handleMicClick = async () => {
-        if (isListening || isSpeaking) {
-            stop();
-            return;
-        }
-
-        const context = ONBOARDING_VOICE_CONTEXT[currentStep];
-
-        try {
-            if (!sessionId) {
-                const response = await voiceService.startSession('en', context);
-                setSessionId(response.session_id);
-                speak(response.greeting, () => {
-                    startListeningLoop(response.session_id, context);
-                });
-            } else {
-                startListeningLoop(sessionId, context);
-            }
-        } catch (error) {
-            console.error(error);
-            showToast('Failed to connect to Voice Assistant', 'error');
-        }
-    };
-
-    const startListeningLoop = (currentSessionId: string, context: any) => {
-        listen(async (transcript) => {
-            console.log('User said:', transcript);
-
-            try {
-                const response = await voiceService.sendChatMessage(currentSessionId, transcript, context);
-
-                if (response.current_data && Object.keys(response.current_data).length > 0) {
-                    setFormData((prev: any) => ({
-                        ...prev,
-                        ...response.current_data
-                    }));
-                    showToast('Updated fields based on voice input', 'success');
-                }
-
-                speak(response.ai_response, () => {
-                    startListeningLoop(currentSessionId, context);
-                });
-
-            } catch (err) {
-                console.error(err);
-                showToast('Failed to process voice command', 'error');
-            }
-        });
     };
 
     // State for API-fetched dropdown options, keyed by frontend field name
@@ -373,8 +316,19 @@ const Onboarding = () => {
         if (!doctorId) return;
 
         doctorService.fetchAndStoreProfile(doctorId)
-            .then((profile) => {
+            .then(async (profile) => {
                 const mappedData = doctorService.mapProfileToFormData(profile);
+
+                // If the profile has a photo, resolve it to a fresh signed URL
+                // so the <img> src is always an HTTPS URL (not a bare S3 key).
+                let resolvedPhotoUrl: string | null = null;
+                if (profile.profile_photo) {
+                    resolvedPhotoUrl = await doctorService.getProfilePhotoSignedUrl(doctorId);
+                    if (resolvedPhotoUrl) {
+                        mappedData.profileImage = resolvedPhotoUrl;
+                    }
+                }
+
                 setFormData((prev: typeof formData) => {
                     const updated = { ...prev };
                     for (const [key, value] of Object.entries(mappedData)) {
@@ -384,6 +338,10 @@ const Onboarding = () => {
                         if (isEmpty && value !== '' && value !== null && value !== undefined) {
                             (updated as Record<string, unknown>)[key] = value;
                         }
+                    }
+                    // Always apply a freshly signed photo URL (merge skips non-empty stale keys / S3 keys).
+                    if (resolvedPhotoUrl) {
+                        (updated as Record<string, unknown>).profileImage = resolvedPhotoUrl;
                     }
                     return updated;
                 });
@@ -442,8 +400,16 @@ const Onboarding = () => {
         const file = new File([croppedBlob], 'profile-photo.jpg', { type: 'image/jpeg' });
 
         try {
-            const url = await doctorService.uploadProfilePhoto(doctorId, file);
-            setFormData(prev => ({ ...prev, profileImage: url }));
+            // Upload and get the URL returned by the backend.
+            // The backend returns a signed URL when USE_SIGNED_URLS=true, or a bare S3
+            // key otherwise. We follow up with getProfilePhotoSignedUrl to guarantee
+            // the <img> src is always a renderable HTTPS URL.
+            await doctorService.uploadProfilePhoto(doctorId, file);
+
+            const signedUrl = await doctorService.getProfilePhotoSignedUrl(doctorId);
+            if (signedUrl) {
+                setFormData(prev => ({ ...prev, profileImage: signedUrl }));
+            }
             showToast('Profile photo uploaded', 'success');
         } catch (err) {
             console.error('Failed to upload profile photo:', err);
@@ -659,62 +625,19 @@ const Onboarding = () => {
 
             <div className={styles.mainContent}>
                 <div className={styles.leftColumn}>
-
-                    {/* AI Banner with embedded Back button */}
-                    <div className={styles.aiBanner} data-tour="ai-banner">
-                        <div className={styles.aiContent}>
-                            {currentStep > 1 && (
-                                <button
-                                    onClick={handleBack}
-                                    className={styles.inlineBackButton}
-                                    aria-label="Go back"
-                                >
-                                    <ArrowLeft size={20} />
-                                </button>
-                            )}
-
-                            <div className={styles.aiIconCircle}>
-                                <Sparkles size={24} />
-                            </div>
-                            <div className={styles.aiText}>
-                                <h4>CAEPY AI</h4>
-                                <p>Speak naturally, I&apos;ll take care of the rest</p>
-                            </div>
+                    {currentStep > 1 && (
+                        <div className={styles.onboardingBackRow}>
+                            <button
+                                type="button"
+                                onClick={handleBack}
+                                className={styles.onboardingBackButton}
+                                aria-label="Go back to previous section"
+                            >
+                                <ArrowLeft size={18} aria-hidden />
+                                Back
+                            </button>
                         </div>
-
-                        <div className={styles.audioControls}>
-                            {isListening || isSpeaking ? (
-                                <>
-                                    <div className={styles.listeningBadge}>
-                                        <div className={`${styles.listeningDot} ${isSpeaking ? styles.isTalking : styles.isListening}`}></div>
-                                        {isSpeaking ? 'talking' : 'listening'}
-                                    </div>
-                                    <div className={styles.wave}>
-                                        {[1, 2, 3, 4, 5].map(i => <div key={i} className={styles.waveBar} style={{ animationDelay: `${i * 0.1}s` }}></div>)}
-                                    </div>
-                                    <button
-                                        className={`${styles.micButton} ${styles.active}`}
-                                        onClick={handleMicClick}
-                                    >
-                                        <MicOff size={24} />
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <div className={styles.listeningBadge}>
-                                        <div className={styles.listeningDot} style={{ backgroundColor: '#39C8CE', boxShadow: 'none', border: 'none' }}></div>
-                                        Ready to Speak
-                                    </div>
-                                    <button
-                                        className={`${styles.micButton} ${styles.ready}`}
-                                        onClick={handleMicClick}
-                                    >
-                                        <Mic size={24} />
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    </div>
+                    )}
 
                     <div className={styles.formContainer} data-tour="form-section">
                         {renderStepContent()}

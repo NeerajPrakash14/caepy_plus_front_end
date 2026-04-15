@@ -99,6 +99,49 @@ interface DoctorApiResponse {
 
 const DOCTOR_PROFILE_KEY = 'doctor_profile';
 
+/**
+ * Extract a usable HTTPS URL from signed-url API responses.
+ * Handles GenericResponse envelopes, snake_case / camelCase, and string bodies.
+ */
+function extractProfilePhotoSignedUrlPayload(data: unknown): string | null {
+    if (data == null) return null;
+    if (typeof data === 'string') {
+        const t = data.trim();
+        return /^https?:\/\//i.test(t) ? t : null;
+    }
+    if (typeof data !== 'object') return null;
+    const o = data as Record<string, unknown>;
+    const fromRoot =
+        o.signed_url ??
+        o.signedUrl ??
+        (o as { signedURL?: string }).signedURL ??
+        o.url ??
+        o.profile_photo_url ??
+        (o as { profilePhotoUrl?: string }).profilePhotoUrl;
+    if (typeof fromRoot === 'string' && fromRoot.trim()) {
+        const t = fromRoot.trim();
+        if (/^https?:\/\//i.test(t)) return t;
+    }
+    const inner = o.data;
+    if (typeof inner === 'string') {
+        const t = inner.trim();
+        if (/^https?:\/\//i.test(t)) return t;
+    }
+    if (inner && typeof inner === 'object') {
+        const n = inner as Record<string, unknown>;
+        const u =
+            n.signed_url ??
+            n.signedUrl ??
+            (n as { signedURL?: string }).signedURL ??
+            n.url;
+        if (typeof u === 'string' && u.trim()) {
+            const t = u.trim();
+            if (/^https?:\/\//i.test(t)) return t;
+        }
+    }
+    return null;
+}
+
 export const doctorService = {
     /**
      * Fetch doctor profile from API and store in localStorage.
@@ -437,13 +480,15 @@ export const doctorService = {
 
     /**
      * Upload profile photo via POST /doctors/{doctor_id}/profile-photo.
-     * Returns the S3 URL from the `profile_photo` field in the response.
+     * Returns the signed S3 URL from the `profile_photo` field in the API response.
+     * The backend's _sign_doctor_urls call in the upload endpoint converts the raw
+     * S3 key to a presigned URL before returning it (when USE_SIGNED_URLS=true).
      */
     uploadProfilePhoto: async (doctorId: string | number, file: File): Promise<string> => {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await api.post<{ success: boolean; data: { profile_photo: string } }>(
+        const response = await api.post<{ success: boolean; message: string; data: { profile_photo?: string | null } }>(
             `/doctors/${doctorId}/profile-photo`,
             formData,
             {
@@ -453,15 +498,36 @@ export const doctorService = {
             },
         );
 
-        // Prefer nested data.profile_photo, but fall back defensively
-        const data = response.data as any;
-        if (data?.data?.profile_photo) {
-            return data.data.profile_photo as string;
+        // The upload endpoint returns a full DoctorResponse envelope:
+        // { success, message, data: { ..., profile_photo: <signed_url_or_key> } }
+        const profilePhoto = response.data?.data?.profile_photo;
+        if (profilePhoto) {
+            return profilePhoto;
         }
-        if (data?.profile_photo) {
-            return data.profile_photo as string;
+        throw new Error('Profile photo URL not found in upload response');
+    },
+
+    /**
+     * Get a fresh presigned S3 URL for the doctor's profile photo.
+     * Call this before rendering the photo — the raw key stored in the DB
+     * is not directly renderable as an <img> src.
+     *
+     * Falls back to the stored URI if the backend returns a non-signed URL
+     * (e.g. local storage backend in development).
+     */
+    getProfilePhotoSignedUrl: async (doctorId: string | number): Promise<string | null> => {
+        try {
+            const response = await api.get(`/doctors/${doctorId}/profile-photo/signed-url`);
+            const parsed = parseResponse<unknown>(response);
+            const fromParsed = extractProfilePhotoSignedUrlPayload(parsed);
+            if (fromParsed) return fromParsed;
+            return extractProfilePhotoSignedUrlPayload(response.data);
+        } catch (err: unknown) {
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 404) return null;
+            console.warn('Could not fetch profile photo signed URL:', err);
+            return null;
         }
-        throw new Error('Profile photo URL not found in response');
     },
 
     /**
