@@ -25,15 +25,9 @@ const TOUR_STEPS: TourStep[] = [
         position: 'bottom',
     },
     {
-        target: 'ai-banner',
-        title: 'Voice-Powered Assistant',
-        description: 'Click the microphone and speak naturally. CAEPY AI will listen, understand, and fill in your profile fields automatically.',
-        position: 'bottom',
-    },
-    {
         target: 'form-section',
         title: 'Your Profile Form',
-        description: 'Fill in your details section by section. Required fields are marked with an asterisk (*). You can also type if you prefer.',
+        description: 'Fill in your details section by section. Required fields are marked with an asterisk (*). Your progress is saved as you go.',
         position: 'right',
     },
     {

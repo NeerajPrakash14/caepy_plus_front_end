@@ -1,13 +1,14 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useAppRouter } from '../lib/router';
-import { Star, Loader2, Sparkles } from 'lucide-react';
+import { Star, Loader2 } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 import styles from './Login.module.css';
 import { authService } from '../services/authService';
 import { doctorService } from '../services/doctorService';
 import { mockDataService } from '../services/mockDataService';
+import { publicAssetUrl } from '../config/basePath';
 
 const Login = () => {
     const router = useAppRouter();
@@ -237,7 +238,7 @@ const Login = () => {
             image: "https://randomuser.me/api/portraits/women/44.jpg"
         },
         {
-            quote: "CAEPY has completely transformed how I manage my online presence. The voice-assisted setup was a game-changer.",
+            quote: "Caepy has completely transformed how I manage my online presence. The voice-assisted setup was a game-changer.",
             author: "Dr. Rajesh Kumar",
             role: "Cardiologist · Mumbai",
             image: "https://randomuser.me/api/portraits/men/32.jpg"
@@ -328,16 +329,20 @@ const Login = () => {
             <div className={styles.formSection}>
                 <div className={styles.logoWrapper}>
                     <div className={styles.logoHeader}>
-                        <Sparkles size={48} color="#293991" fill="#293991" fillOpacity={0.1} strokeWidth={1.5} />
+                        <img
+                            src={publicAssetUrl('/LinQMD.svg')}
+                            alt="Caepy logo"
+                            style={{ width: 52, height: 52, display: 'block', objectFit: 'contain' }}
+                        />
                         <div className={styles.logoTextColumn}>
-                            <span className={styles.brandNameLarge}>CAEPY</span>
+                            <span className={styles.brandNameLarge}>Caepy</span>
                             <span className={styles.taglineLarge}>Practice Smarter</span>
                         </div>
                     </div>
                 </div>
 
                 <div className={styles.formContainer}>
-                    <h2 className={styles.formTitle}>Join CAEPY</h2>
+                    <h2 className={styles.formTitle}>Join Caepy</h2>
                     <p className={styles.formSubtitle}>
                         Create and manage a professional doctor profile using a guided, voice-assisted setup.
                     </p>
@@ -431,18 +436,18 @@ const Login = () => {
                                     {error && <p className={styles.errorMessage} style={{ color: 'red', fontSize: '0.875rem', marginBottom: '1rem' }}>{error}</p>}
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                        <button 
-                                            type="submit" 
-                                            className={styles.submitButton} 
+                                        <button
+                                            type="submit"
+                                            className={styles.submitButton}
                                             disabled={isLoading}
                                             onClick={() => setOtpDeliveryMethod('whatsapp')}
                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: '#25D366' }}
                                         >
                                             {isLoading && otpDeliveryMethod === 'whatsapp' ? <Loader2 className="animate-spin" size={20} /> : 'Get OTP on WhatsApp'}
                                         </button>
-                                        <button 
-                                            type="submit" 
-                                            className={styles.submitButton} 
+                                        <button
+                                            type="submit"
+                                            className={styles.submitButton}
                                             disabled={isLoading}
                                             onClick={() => setOtpDeliveryMethod('sms')}
                                             style={{ background: 'transparent', color: '#4B5563', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}

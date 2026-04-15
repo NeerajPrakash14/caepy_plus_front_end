@@ -5,3 +5,12 @@ export const BASE_PATH: string = rawBase
     : '';
 
 export const BASE_PATH_WITH_SLASH: string = BASE_PATH ? `${BASE_PATH}/` : '/';
+
+/**
+ * URL for a file in /public when the app may be served under `basePath`
+ * (e.g. NEXT_PUBLIC_BASE_PATH=/portal → /portal/LinQMD.svg).
+ */
+export function publicAssetUrl(path: string): string {
+    const p = path.startsWith('/') ? path : `/${path}`;
+    return `${BASE_PATH}${p}`;
+}
