@@ -100,7 +100,7 @@ api.interceptors.response.use(
             if (!isPublicAuthFailure) {
                 const keysToRemove = [
                     'access_token', 'token_type', 'expires_in',
-                    'doctor_id', 'mobile_number', 'is_new_user',
+                    'doctor_id', 'mobile_number', 'user_email', 'is_new_user',
                     'role', 'doctor_profile', 'caepy_current_user_id',
                 ];
                 keysToRemove.forEach((key) => localStorage.removeItem(key));
