@@ -9,6 +9,7 @@ import { authService } from '../services/authService';
 import { doctorService } from '../services/doctorService';
 import { mockDataService } from '../services/mockDataService';
 import { publicAssetUrl } from '../config/basePath';
+import { parseErrorMessage } from '../lib/api';
 
 const Login = () => {
     const router = useAppRouter();
@@ -178,8 +179,8 @@ const Login = () => {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
 
-            // Get the Firebase ID token for backend verification
-            const idToken = await user.getIdToken();
+            // Fresh Firebase ID token for backend verifyIdToken (avoids stale cached JWT)
+            const idToken = await user.getIdToken(true);
             const userEmail = user.email;
             const userName = user.displayName;
 
@@ -221,7 +222,7 @@ const Login = () => {
             } else if (errorCode === 'auth/configuration-not-found' || (errorMessage && errorMessage.includes('api key'))) {
                 setError("Firebase configuration error. Please check your setup.");
             } else {
-                setError("Google login failed: " + (errorMessage || "Unknown error"));
+                setError(`Google login failed: ${parseErrorMessage(error)}`);
             }
         } finally {
             setIsLoading(false);
