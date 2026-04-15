@@ -12,6 +12,7 @@ import styles from './ProfileView.module.css';
 
 import { mockDataService } from '../services/mockDataService';
 import { calculateProfileProgress } from '../lib/profileProgress';
+import { useResolvedProfilePhotoDisplayUrl } from '../hooks/useResolvedProfilePhotoDisplayUrl';
 
 const ProfileView = () => {
     const router = useAppRouter();
@@ -33,13 +34,22 @@ const ProfileView = () => {
         ...navFormData
     };
 
+    const rawProfileImage = typeof formData.profileImage === 'string' ? formData.profileImage : '';
+    const skipSignedForLocalPreview = /^(data:|blob:)/i.test(rawProfileImage);
+    const { url: resolvedProfilePhotoUrl } = useResolvedProfilePhotoDisplayUrl(
+        rawProfileImage || undefined,
+        undefined,
+        skipSignedForLocalPreview,
+    );
+
     // Safe accessors - Handle both flat structure (from Onboarding) and nested (legacy/seed)
     const name = formData.fullName || formData.personalInfo?.fullName || formData.name || 'Dr. User';
     const specialty = formData.specialty || formData.personalInfo?.specialty || 'General Practitioner';
     const loc = formData.primaryLocation || formData.personalInfo?.primaryLocation || 'India';
     const exp = formData.experience || formData.personalInfo?.experience;
     const isVerified = (formData.onboarding_status || formData.status) === 'verified';
-    const hasPhoto = !!formData.profileImage;
+    const displayProfilePhoto = resolvedProfilePhotoUrl;
+    const hasPhoto = !!displayProfilePhoto;
 
     return (
         <div className={styles.pageContent}>
@@ -107,8 +117,13 @@ const ProfileView = () => {
                                 </div>
 
                                 <div className={styles.avatarContainer}>
-                                    {formData.profileImage ? (
-                                        <img src={formData.profileImage} alt="Profile" className={styles.avatar} />
+                                    {displayProfilePhoto ? (
+                                        <img
+                                            src={displayProfilePhoto}
+                                            alt="Profile"
+                                            className={styles.avatar}
+                                            referrerPolicy="no-referrer"
+                                        />
                                     ) : (
                                         <div
                                             className={styles.avatar}

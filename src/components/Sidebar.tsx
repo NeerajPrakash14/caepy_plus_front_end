@@ -5,9 +5,10 @@ import { usePathname } from 'next/navigation';
 import {
     LayoutGrid, FileText, User,
     ChevronLeft, ChevronRight,
-    PenTool
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
+import { mockDataService } from '../services/mockDataService';
+import { calculateProfileProgress } from '../lib/profileProgress';
 
 const Sidebar: React.FC = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -15,6 +16,14 @@ const Sidebar: React.FC = () => {
     const toggleSidebar = () => {
         setIsCollapsed(!isCollapsed);
     };
+
+    // Compute profile completion to conditionally show the Onboarding menu item.
+    // Once the doctor reaches ≥80% completion, the onboarding item is hidden
+    // so the sidebar stays uncluttered for users who have largely finished setup.
+    const currentUser = mockDataService.getCurrentUser();
+    const profileData = { ...(currentUser?.data || {}), ...currentUser };
+    const profilePercentage = calculateProfileProgress(profileData).totalPercentage;
+    const showOnboarding = profilePercentage < 80;
 
     return (
         <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
@@ -27,12 +36,14 @@ const Sidebar: React.FC = () => {
             </button>
 
             <nav className={styles.navGroup}>
-                <NavItem
-                    to="/doctor/onboarding"
-                    icon={<FileText size={20} />}
-                    label="Onboarding"
-                    isCollapsed={isCollapsed}
-                />
+                {showOnboarding && (
+                    <NavItem
+                        to="/doctor/onboarding"
+                        icon={<FileText size={20} />}
+                        label="Onboarding"
+                        isCollapsed={isCollapsed}
+                    />
+                )}
                 <NavItem
                     to="/doctor/profile"
                     icon={<LayoutGrid size={20} />}
@@ -43,12 +54,6 @@ const Sidebar: React.FC = () => {
                     to="/doctor/profile-summary"
                     icon={<User size={20} />}
                     label="Profile"
-                    isCollapsed={isCollapsed}
-                />
-                <NavItem
-                    to="/doctor/blog-studio"
-                    icon={<PenTool size={20} />}
-                    label="Blog Studio"
                     isCollapsed={isCollapsed}
                 />
             </nav>

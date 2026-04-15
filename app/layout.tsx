@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CAEPY',
-  description: 'Doctor onboarding platform',
+  title: 'Caepy',
+  description: 'Caepy — AI-assisted doctor onboarding and practice management platform.',
   icons: { icon: '/favicon.svg' },
 };
 

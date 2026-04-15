@@ -13,6 +13,7 @@ import styles from './AdminDashboard.module.css';
 
 import { adminService, type Doctor, type DoctorFullProfile, type DoctorDetails } from '../../services/adminService';
 import { calculateProfileProgressFromApi } from '../../lib/profileProgress';
+import { useResolvedProfilePhotoDisplayUrl } from '../../hooks/useResolvedProfilePhotoDisplayUrl';
 
 const AdminDoctorDetails = () => {
     const router = useAppRouter();
@@ -78,10 +79,10 @@ const AdminDoctorDetails = () => {
     const [emailBody, setEmailBody] = useState('');
 
     const getVerifyEmailContent = useCallback(() => ({
-        subject: `Profile Verified - Welcome to CAEPY, Dr. ${doctorName}!`,
+        subject: `Profile Verified - Welcome to Caepy, Dr. ${doctorName}!`,
         body: `Dear Dr. ${doctorName},
 
-Congratulations! We are delighted to inform you that your profile on CAEPY has been reviewed and verified successfully.
+Congratulations! We are delighted to inform you that your profile on Caepy has been reviewed and verified successfully.
 
 Here is a summary of your verified profile:
 - Name: Dr. ${doctorName}
@@ -90,19 +91,19 @@ Here is a summary of your verified profile:
 - Email: ${email}
 - Phone: ${phone}
 
-Your profile is now live and visible to patients on the CAEPY platform. You can log in at any time to update your information, manage appointments, and engage with your patients.
+Your profile is now live and visible to patients on the Caepy platform. You can log in at any time to update your information, manage appointments, and engage with your patients.
 
 If you have any questions or need assistance, please don't hesitate to reach out to our support team.
 
 Warm regards,
-The CAEPY Team`,
+The Caepy Team`,
     }), [doctorName, specialty, regNumber, email, phone]);
 
     const getRejectEmailContent = useCallback(() => ({
         subject: `Profile Review Update - Action Required, Dr. ${doctorName}`,
         body: `Dear Dr. ${doctorName},
 
-Thank you for registering on CAEPY. After a careful review of your submitted profile, we regret to inform you that your profile could not be verified at this time.
+Thank you for registering on Caepy. After a careful review of your submitted profile, we regret to inform you that your profile could not be verified at this time.
 
 Reason for rejection:
 [Please specify the reason for rejection here]
@@ -116,8 +117,21 @@ Profile details:
 We encourage you to review the feedback above, update your profile accordingly, and resubmit for verification. If you believe this decision was made in error, please contact our support team.
 
 Best regards,
-The CAEPY Team`,
+The Caepy Team`,
     }), [doctorName, specialty, regNumber, email]);
+
+    const adminViewDoctorId =
+        routeId != null && routeId !== ''
+            ? (() => {
+                  const n = Number.parseInt(String(routeId), 10);
+                  return Number.isFinite(n) ? n : null;
+              })()
+            : doctor?.id ?? null;
+
+    const { url: adminProfilePhotoUrl, loading: adminProfilePhotoLoading } = useResolvedProfilePhotoDisplayUrl(
+        typeof details?.profile_photo === 'string' ? details.profile_photo : undefined,
+        adminViewDoctorId,
+    );
 
     if (isFetching) {
         return (
@@ -200,12 +214,30 @@ The CAEPY Team`,
                 {/* Header */}
                 <div className={styles.flexBetweenStart} style={{ marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                        {details?.profile_photo ? (
+                        {adminProfilePhotoUrl ? (
                             <img
-                                src={details.profile_photo}
+                                src={adminProfilePhotoUrl}
                                 alt={doctorName}
+                                referrerPolicy="no-referrer"
                                 style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '3px solid white', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                             />
+                        ) : details?.profile_photo && adminProfilePhotoLoading ? (
+                            <div
+                                style={{
+                                    width: '80px',
+                                    height: '80px',
+                                    borderRadius: '50%',
+                                    background: '#EEF2FF',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#4F46E5',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                }}
+                            >
+                                <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
+                                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                            </div>
                         ) : (
                             <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4F46E5', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
                                 <User size={40} />

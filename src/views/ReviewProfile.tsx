@@ -12,6 +12,7 @@ import { mockDataService } from '../services/mockDataService';
 import { doctorService } from '../services/doctorService';
 import { validateSection1 } from '../lib/validation';
 import { calculateProfileProgress } from '../lib/profileProgress';
+import { useResolvedProfilePhotoDisplayUrl } from '../hooks/useResolvedProfilePhotoDisplayUrl';
 
 const ReviewProfile = () => {
     const router = useAppRouter();
@@ -41,6 +42,14 @@ const ReviewProfile = () => {
     const handleToastClose = () => {
         setToast(prev => ({ ...prev, isVisible: false }));
     };
+
+    const rawProfileImage = typeof formData.profileImage === 'string' ? formData.profileImage : '';
+    const skipSignedForLocalPreview = /^(data:|blob:)/i.test(rawProfileImage);
+    const { url: resolvedProfilePhotoUrl } = useResolvedProfilePhotoDisplayUrl(
+        rawProfileImage || undefined,
+        undefined,
+        skipSignedForLocalPreview,
+    );
 
     // Helper to safely access data
     const getVal = (key: string) => formData[key] || 'Not provided';
@@ -147,8 +156,20 @@ const ReviewProfile = () => {
 
                 <div className={styles.profileHeaderSection}>
                     <div className={styles.reviewAvatar}>
-                        {formData.profileImage ? (
-                            <img src={formData.profileImage} alt="Profile" style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', border: '4px solid white', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                        {resolvedProfilePhotoUrl ? (
+                            <img
+                                src={resolvedProfilePhotoUrl}
+                                alt="Profile"
+                                referrerPolicy="no-referrer"
+                                style={{
+                                    width: '120px',
+                                    height: '120px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: '4px solid white',
+                                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                }}
+                            />
                         ) : (
                             <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', color: '#9CA3AF', border: '4px solid white', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
                                 {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : '?'}

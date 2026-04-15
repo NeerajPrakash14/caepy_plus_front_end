@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppRouter } from '../lib/router';
 import { Check, Clock, UserCheck, Sparkles, MapPin, Edit2, LayoutGrid, Eye, Send, CheckCircle, LifeBuoy } from 'lucide-react';
 import styles from './ProfileSubmitted.module.css';
+import { useResolvedProfilePhotoDisplayUrl } from '../hooks/useResolvedProfilePhotoDisplayUrl';
 
 const ProfileSubmitted = () => {
     const router = useAppRouter();
@@ -15,6 +16,14 @@ const ProfileSubmitted = () => {
             sessionStorage.removeItem('nav_state');
         } catch { }
     }, []);
+
+    const rawProfileImage = typeof formData.profileImage === 'string' ? formData.profileImage : '';
+    const skipSignedForLocalPreview = /^(data:|blob:)/i.test(rawProfileImage);
+    const { url: resolvedProfilePhotoUrl } = useResolvedProfilePhotoDisplayUrl(
+        rawProfileImage || undefined,
+        undefined,
+        skipSignedForLocalPreview,
+    );
 
     const getVal = (k: string) => formData[k] || '---';
 
@@ -31,7 +40,17 @@ const ProfileSubmitted = () => {
                 <div className={styles.card}>
                     <div className={styles.profileSummary}>
                         <div className={styles.avatarContainer}>
-                            <img src={formData.profileImage || "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=2070&auto=format&fit=crop"} alt="Doctor" className={styles.avatar} />
+                            <img
+                                src={
+                                    resolvedProfilePhotoUrl ||
+                                    (typeof formData.profileImage === 'string' && /^https?:\/\//i.test(formData.profileImage)
+                                        ? formData.profileImage
+                                        : 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=2070&auto=format&fit=crop')
+                                }
+                                alt="Doctor"
+                                className={styles.avatar}
+                                referrerPolicy="no-referrer"
+                            />
                         </div>
                         <div className={styles.docInfo}>
                             <h3>{getVal('fullName')}</h3>
