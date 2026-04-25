@@ -4,12 +4,16 @@
     font-family: 'Outfit', sans-serif;
     min-height: 100%;
     width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 /* Header */
