@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-    LayoutGrid, FileText, User,
+    LayoutGrid, FileText, User, BookOpen,
     ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
@@ -54,6 +54,12 @@ const Sidebar: React.FC = () => {
                     to="/doctor/profile-summary"
                     icon={<User size={20} />}
                     label="Profile"
+                    isCollapsed={isCollapsed}
+                />
+                <NavItem
+                    to="/doctor/blog-studio"
+                    icon={<BookOpen size={20} />}
+                    label="Blog Studio"
                     isCollapsed={isCollapsed}
                 />
             </nav>
